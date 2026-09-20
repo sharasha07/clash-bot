@@ -21,6 +21,10 @@ type Config struct {
 		WriteTimeout time.Duration `env:"SERVER_WRITE_TIMEOUT,required"`
 		IdleTimeout  time.Duration `env:"SERVER_IDLE_TIMEOUT,required"`
 	}
+
+	CORS struct {
+		TrustedOrigins []string `env:"TRUSTED_ORIGINS,required"`
+	}
 }
 
 func main() {

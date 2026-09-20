@@ -85,3 +85,104 @@ func TestRecoverPanic(t *testing.T) {
 		})
 	}
 }
+
+func TestEnableCORS(t *testing.T) {
+	tests := []struct {
+		name       string
+		isTrusted  bool
+		method     string
+		header     http.Header
+		stub       http.HandlerFunc
+		wantCode   int
+		wantHeader http.Header
+	}{
+		{
+			name:      "No Origin",
+			isTrusted: false,
+			method:    http.MethodGet,
+			header:    nil,
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}),
+			wantCode: http.StatusOK,
+			wantHeader: http.Header{
+				"Vary": []string{"Origin", "Access-Control-Request-Method"},
+			},
+		},
+		{
+			name:      "Trusted Origin",
+			isTrusted: true,
+			method:    http.MethodPost,
+			header: http.Header{
+				"Origin": []string{"http://localhost:6767"},
+			},
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			wantCode: http.StatusCreated,
+			wantHeader: http.Header{
+				"Vary":                        []string{"Origin", "Access-Control-Request-Method"},
+				"Access-Control-Allow-Origin": []string{"http://localhost:6767"},
+			},
+		},
+		{
+			name:      "Untrusted Origin",
+			isTrusted: false,
+			method:    http.MethodDelete,
+			header: http.Header{
+				"Origin": []string{"http://localhost:6767"},
+			},
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			wantCode: http.StatusCreated,
+			wantHeader: http.Header{
+				"Vary": []string{"Origin", "Access-Control-Request-Method"},
+			},
+		},
+		{
+			name:      "Trusted Origin + Options method + Access-Control-Request-Method",
+			isTrusted: true,
+			method:    http.MethodOptions,
+			header: http.Header{
+				"Origin":                        []string{"http://localhost:6767"},
+				"Access-Control-Request-Method": []string{http.MethodPatch},
+			},
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			wantCode: http.StatusOK,
+			wantHeader: http.Header{
+				"Vary":                         []string{"Origin", "Access-Control-Request-Method"},
+				"Access-Control-Allow-Origin":  []string{"http://localhost:6767"},
+				"Access-Control-Allow-Methods": []string{"OPTIONS, PUT, PATCH, DELETE"},
+				"Access-Control-Allow-Headers": []string{"Authorization, Content-Type"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, "/health", nil)
+			req.Header = tt.header
+			rr := httptest.NewRecorder()
+
+			app := newTestApplication()
+
+			if tt.isTrusted {
+				app.cfg.CORS.TrustedOrigins = append(app.cfg.CORS.TrustedOrigins, tt.header.Get("Origin"))
+			}
+
+			app.enableCORS(tt.stub).ServeHTTP(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+			assert.EqualHeaders(t, tt.wantHeader, resp.Header)
+			if tt.wantHeader.Get("Access-Control-Allow-Origin") == "" {
+				assert.Equal(t, "", resp.Header.Get("Access-Control-Allow-Origin"))
+			}
+		})
+	}
+}
