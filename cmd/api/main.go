@@ -1,10 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
-	"github.com/caarlos0/env"
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
@@ -30,6 +31,8 @@ func main() {
 	app := &application{
 		cfg: cfg,
 	}
+
+	fmt.Println(cfg)
 
 	if err := app.serve(); err != nil {
 		log.Fatal(err)
