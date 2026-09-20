@@ -1,14 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/caarlos0/env"
 )
 
 type Config struct {
 	Port int `env:"PORT,required"`
+
+	Server struct {
+		ReadTimeout  time.Duration `env:"SERVER_READ_TIMEOUT,required"`
+		WriteTimeout time.Duration `env:"SERVER_WRITE_TIMEOUT,required"`
+		IdleTimeout  time.Duration `env:"SERVER_IDLE_TIMEOUT,required"`
+	}
+}
+
+type application struct {
+	cfg Config
 }
 
 func main() {
@@ -17,5 +27,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(cfg.Port)
+	app := &application{
+		cfg: cfg,
+	}
+
+	if err := app.serve(); err != nil {
+		log.Fatal(err)
+	}
 }
