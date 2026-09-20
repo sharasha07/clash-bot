@@ -13,5 +13,5 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/health", app.health)
 
-	return router
+	return app.recoverPanic(router)
 }
