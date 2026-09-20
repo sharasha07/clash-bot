@@ -1,12 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/caarlos0/env/v11"
 )
+
+type application struct {
+	logger *slog.Logger
+	cfg    Config
+}
 
 type Config struct {
 	Port int `env:"PORT,required"`
@@ -18,23 +23,22 @@ type Config struct {
 	}
 }
 
-type application struct {
-	cfg Config
-}
-
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
-		log.Fatal(err)
+		logger.Error("failed to parse env vars", "err", err)
+		os.Exit(1)
 	}
 
 	app := &application{
-		cfg: cfg,
+		cfg:    cfg,
+		logger: logger,
 	}
 
-	fmt.Println(cfg)
-
 	if err := app.serve(); err != nil {
-		log.Fatal(err)
+		logger.Error("server failed", "err", err)
+		os.Exit(1)
 	}
 }
