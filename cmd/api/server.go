@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +19,7 @@ func (app *application) serve() error {
 		ReadTimeout:  app.cfg.Server.ReadTimeout,
 		WriteTimeout: app.cfg.Server.WriteTimeout,
 		IdleTimeout:  app.cfg.Server.IdleTimeout,
+		ErrorLog:     slog.NewLogLogger(app.logger.Handler(), slog.LevelError),
 	}
 
 	shutdownError := make(chan error, 1)
