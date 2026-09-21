@@ -186,3 +186,57 @@ func TestEnableCORS(t *testing.T) {
 		})
 	}
 }
+
+func TestRateLimit(t *testing.T) {
+	tests := []struct {
+		name     string
+		stub     http.HandlerFunc
+		exceed   bool
+		wantCode int
+	}{
+		{
+			name: "Too many requests",
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			exceed:   true,
+			wantCode: http.StatusTooManyRequests,
+		},
+		{
+			name: "Normal request",
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			exceed:   false,
+			wantCode: http.StatusCreated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/health", nil)
+			var rr *httptest.ResponseRecorder
+
+			app := newTestApplication()
+			app.cfg.Limiter.Enabled = true
+			app.cfg.Limiter.RPS = 0
+			app.cfg.Limiter.Burst = 4
+
+			if tt.exceed {
+				limit := app.rateLimit(tt.stub)
+				for i := 0; i < app.cfg.Limiter.Burst+1; i++ {
+					rr = httptest.NewRecorder()
+					limit.ServeHTTP(rr, req)
+				}
+			} else {
+				rr = httptest.NewRecorder()
+				app.rateLimit(tt.stub).ServeHTTP(rr, req)
+			}
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+		})
+	}
+}

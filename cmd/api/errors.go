@@ -29,3 +29,8 @@ func (app *application) serverErrorResponse(w http.ResponseWriter, r *http.Reque
 	message := "internal server error"
 	app.sendError(w, http.StatusInternalServerError, message)
 }
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter) {
+	message := "rate limit exceeded"
+	app.sendError(w, http.StatusTooManyRequests, message)
+}

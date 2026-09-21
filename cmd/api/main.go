@@ -25,6 +25,12 @@ type Config struct {
 	CORS struct {
 		TrustedOrigins []string `env:"TRUSTED_ORIGINS,required"`
 	}
+
+	Limiter struct {
+		RPS     int  `env:"LIMITER_RPS,required"`
+		Burst   int  `env:"LIMITER_BURST,required"`
+		Enabled bool `env:"LIMITER_ENABLED,required"`
+	}
 }
 
 func main() {

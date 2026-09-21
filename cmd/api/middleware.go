@@ -3,11 +3,15 @@ package main
 import (
 	"expvar"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/felixge/httpsnoop"
+	"golang.org/x/time/rate"
 )
 
 var (
@@ -61,6 +65,62 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 					return
 				}
 			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) rateLimit(next http.Handler) http.Handler {
+	type client struct {
+		limiter  *rate.Limiter
+		lastSeen time.Time
+	}
+
+	var (
+		mu      sync.Mutex
+		clients = make(map[string]*client)
+	)
+
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+
+			mu.Lock()
+
+			for ip, client := range clients {
+				if time.Since(client.lastSeen) > 3*time.Minute {
+					delete(clients, ip)
+				}
+			}
+
+			mu.Unlock()
+		}
+	}()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.cfg.Limiter.Enabled {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+
+			mu.Lock()
+
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{limiter: rate.NewLimiter(rate.Limit(app.cfg.Limiter.RPS), app.cfg.Limiter.Burst)}
+			}
+
+			clients[ip].lastSeen = time.Now()
+
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w)
+				return
+			}
+
+			mu.Unlock()
 		}
 
 		next.ServeHTTP(w, r)
