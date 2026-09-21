@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sharasha07/clash-bot/internal/assert"
@@ -99,6 +100,73 @@ func TestWriteJSON(t *testing.T) {
 				if tt.checkBody != nil {
 					tt.checkBody(t, resp)
 				}
+			}
+		})
+	}
+}
+
+func TestReadJSON(t *testing.T) {
+	type dst struct {
+		Example1 string `json:"example1"`
+		Example2 int    `json:"example2"`
+	}
+
+	tests := []struct {
+		name      string
+		inputBody string
+		message   string
+	}{
+		{
+			name:      "empty body",
+			inputBody: "",
+			message:   "body must not be empty",
+		},
+		{
+			name:      "badly-formed JSON",
+			inputBody: `{"example1: "bubu", "example2": 10}`,
+			message:   "body contains badly-formed JSON (at character 14)",
+		},
+		{
+			name:      "Incorrect JSON type",
+			inputBody: `{"example1": "bubu", "example2": "10"}`,
+			message:   `body contains incorrect JSON type for field "example2"`,
+		},
+		{
+			name:      "Large body",
+			inputBody: `{"example1":"` + strings.Repeat("x", 1<<20) + `"}`,
+			message:   "body must not be larger than 1048576 bytes",
+		},
+		{
+			name:      "Unknown field",
+			inputBody: `{"example1": "bubu", "whos_that": "10"}`,
+			message:   `body contains unknown key "whos_that"`,
+		},
+		{
+			name: "Doble JSON",
+			inputBody: `{"example1": "bubu", "example2": 10}
+			{"example1": "bubu", "example2": 10}`,
+			message: "body must only contain a single JSON value",
+		},
+		{
+			name:      "Success",
+			inputBody: `{"example1": "bubu", "example2": 10}`,
+			message:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := newTestApplication()
+			req := httptest.NewRequest(http.MethodGet, "/health", strings.NewReader(tt.inputBody))
+			rr := httptest.NewRecorder()
+
+			var result dst
+			err := app.readJSON(rr, req, &result)
+			if err != nil {
+				assert.Equal(t, tt.message, err.Error())
+			} else {
+				assert.Equal(t, "bubu", result.Example1)
+				assert.Equal(t, 10, result.Example2)
 			}
 		})
 	}

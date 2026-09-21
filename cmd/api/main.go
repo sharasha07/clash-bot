@@ -31,6 +31,13 @@ type Config struct {
 		Burst   int  `env:"LIMITER_BURST,required"`
 		Enabled bool `env:"LIMITER_ENABLED,required"`
 	}
+
+	DB struct {
+		DSN           string        `env:"DB_DSN,required"`
+		MIN_CONNS     int32         `env:"DB_MIN_CONNS,required"`
+		MAX_CONNS     int32         `env:"DB_MAX_CONNS,required"`
+		MAX_IDLE_TIME time.Duration `env:"DB_MAX_IDLE_TIME,required"`
+	}
 }
 
 func main() {
