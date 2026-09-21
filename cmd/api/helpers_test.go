@@ -117,12 +117,12 @@ func TestReadJSON(t *testing.T) {
 		message   string
 	}{
 		{
-			name:      "empty body",
+			name:      "Empty body",
 			inputBody: "",
 			message:   "body must not be empty",
 		},
 		{
-			name:      "badly-formed JSON",
+			name:      "Badly-formed JSON",
 			inputBody: `{"example1: "bubu", "example2": 10}`,
 			message:   "body contains badly-formed JSON (at character 14)",
 		},
