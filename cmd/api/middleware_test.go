@@ -192,15 +192,26 @@ func TestRateLimit(t *testing.T) {
 		name     string
 		stub     http.HandlerFunc
 		exceed   bool
+		enabled  bool
 		wantCode int
 	}{
 		{
-			name: "Too many requests",
+			name: "Too many requests + enabled",
 			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 			}),
 			exceed:   true,
+			enabled:  true,
 			wantCode: http.StatusTooManyRequests,
+		},
+		{
+			name: "Too many requests + disabled",
+			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			}),
+			exceed:   true,
+			enabled:  false,
+			wantCode: http.StatusCreated,
 		},
 		{
 			name: "Normal request",
@@ -208,6 +219,7 @@ func TestRateLimit(t *testing.T) {
 				w.WriteHeader(http.StatusCreated)
 			}),
 			exceed:   false,
+			enabled:  true,
 			wantCode: http.StatusCreated,
 		},
 	}
@@ -218,7 +230,7 @@ func TestRateLimit(t *testing.T) {
 			var rr *httptest.ResponseRecorder
 
 			app := newTestApplication()
-			app.cfg.Limiter.Enabled = true
+			app.cfg.Limiter.Enabled = tt.enabled
 			app.cfg.Limiter.RPS = 0
 			app.cfg.Limiter.Burst = 4
 
