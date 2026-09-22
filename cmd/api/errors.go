@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -36,6 +37,9 @@ func (app *application) rateLimitExceededResponse(w http.ResponseWriter) {
 }
 
 func (app *application) badRequestResponse(w http.ResponseWriter, err error) {
+	if err == nil {
+		err = errors.New("bad request")
+	}
 	app.sendError(w, http.StatusBadRequest, err.Error())
 }
 

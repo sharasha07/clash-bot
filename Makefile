@@ -9,6 +9,11 @@ help:
 run/api:
 	dotenvx run -- go run ./cmd/api
 
+## build/api: build the cmd/api application
+.PHONY: build/api
+build/api:
+	go build -o ./bin/api ./cmd/api
+
 ## audit: tidy and vendor dependencies and format, vet and test all code
 .PHONY: audit
 audit:
@@ -18,6 +23,11 @@ audit:
 	go vet ./...
 	staticcheck ./...
 	CGO_ENABLED=1 dotenvx run -- go test -race -vet=off ./...
+
+## test/e2e: build the API binary and force a real e2e run
+.PHONY: test/e2e
+test/e2e: build/api
+	dotenvx run -- go test -count=1 ./e2e/
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql

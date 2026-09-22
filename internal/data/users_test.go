@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sharasha07/clash-bot/internal/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInsert(t *testing.T) {
@@ -16,12 +16,12 @@ func TestInsert(t *testing.T) {
 	}{
 		{
 			name:     "Success",
-			username: "luka",
+			username: "saba",
 			err:      nil,
 		},
 		{
 			name:     "Username Unique Violation",
-			username: "shaba",
+			username: "luka",
 			err:      ErrUniqueViolation,
 		},
 	}

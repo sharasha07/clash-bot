@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sharasha07/clash-bot/internal/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHealth(t *testing.T) {

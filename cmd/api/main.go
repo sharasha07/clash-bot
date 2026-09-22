@@ -62,8 +62,8 @@ func main() {
 	logger.Info("successfully connected to db")
 
 	app := &application{
-		cfg:    cfg,
 		logger: logger,
+		cfg:    cfg,
 		models: data.NewDBModels(pool),
 	}
 

@@ -27,6 +27,11 @@ type User struct {
 	Version        int32     `json:"-"`
 }
 
+type password struct {
+	plain string
+	hash  string
+}
+
 func (u *User) Validate(v *validator.Validator) {
 	v.Check(u.Username != "", "username", "must be provided")
 	v.Check(utf8.RuneCountInString(u.Username) <= 10, "username", "must not be more than 10 characters")
@@ -43,11 +48,6 @@ func (u *User) Validate(v *validator.Validator) {
 		v.Check(*u.GameTag != "", "game_tag", "must not be empty")
 		v.Check(strings.HasPrefix(*u.GameTag, "#"), "game_tag", "must start with #")
 	}
-}
-
-type password struct {
-	plain string
-	hash  string
 }
 
 func (p *password) Set(plain string) error {

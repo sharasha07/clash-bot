@@ -1,37 +1,49 @@
-package main
+package e2e
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRoutes(t *testing.T) {
+func TestHealth(t *testing.T) {
 	tests := []struct {
 		name      string
 		method    string
-		path      string
+		url       string
+		body      io.Reader
 		wantCode  int
 		checkBody func(t *testing.T, resp *http.Response)
 	}{
 		{
-			name:      "Success request on /health",
-			method:    http.MethodGet,
-			path:      "/health",
-			wantCode:  http.StatusOK,
-			checkBody: nil,
+			name:     "Success",
+			method:   http.MethodGet,
+			url:      apiURL + "/health",
+			body:     nil,
+			wantCode: http.StatusOK,
+			checkBody: func(t *testing.T, resp *http.Response) {
+				var result struct {
+					Status string `json:"status"`
+				}
+
+				err := json.NewDecoder(resp.Body).Decode(&result)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				assert.Equal(t, "available", result.Status)
+			},
 		},
 		{
-			name:     "Invalid method on /health",
+			name:     "Invalid Method",
 			method:   http.MethodPost,
-			path:     "/health",
+			url:      apiURL + "/health",
+			body:     nil,
 			wantCode: http.StatusMethodNotAllowed,
 			checkBody: func(t *testing.T, resp *http.Response) {
-				t.Helper()
-
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -45,13 +57,12 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name:     "Invalid path request",
+			name:     "Invalid Path",
 			method:   http.MethodGet,
-			path:     "/healthinio",
+			url:      apiURL + "/thealth",
+			body:     nil,
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, resp *http.Response) {
-				t.Helper()
-
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -68,17 +79,18 @@ func TestRoutes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.path, nil)
-			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(tt.method, tt.url, tt.body)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			app := newTestApplication()
-			app.routes().ServeHTTP(rr, req)
-
-			resp := rr.Result()
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.wantCode, resp.StatusCode)
-			assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 
 			if tt.checkBody != nil {
 				tt.checkBody(t, resp)

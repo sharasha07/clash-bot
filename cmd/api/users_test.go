@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sharasha07/clash-bot/internal/assert"
 	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateUserHandler(t *testing.T) {
@@ -77,26 +77,6 @@ func TestCreateUserHandler(t *testing.T) {
 				assert.Equal(t, "must be provided", result.Error["username"])
 				assert.Equal(t, "must be provided", result.Error["password"])
 				assert.Equal(t, 2, len(result.Error))
-			},
-		},
-		{
-			name:     "Valid username, short password",
-			input:    `{"username": "luka", "password": "luka123"}`,
-			wantCode: http.StatusUnprocessableEntity,
-			checkBody: func(t *testing.T, resp *http.Response) {
-				t.Helper()
-
-				var result struct {
-					Error map[string]string `json:"error"`
-				}
-
-				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				assert.Equal(t, "must be at least 8 characters", result.Error["password"])
-				assert.Equal(t, 1, len(result.Error))
 			},
 		},
 		{

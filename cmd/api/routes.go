@@ -17,5 +17,5 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.createUserHandler)
 
-	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(router))))
+	return app.recoverPanic(app.metrics(app.enableCORS(app.rateLimit(router))))
 }
