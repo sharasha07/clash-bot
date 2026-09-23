@@ -113,7 +113,7 @@ func TestCreateUserHandler(t *testing.T) {
 			wantCode: http.StatusUnprocessableEntity,
 			setMock: func(t *testing.T, users *mocks.MockUserModelInterface) {
 				t.Helper()
-				users.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(data.ErrUniqueViolation)
+				users.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(data.ErrDuplicateUsersUsername)
 			},
 			checkBody: func(t *testing.T, resp *http.Response) {
 				t.Helper()

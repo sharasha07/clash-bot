@@ -1,14 +1,12 @@
 package data
 
 import (
-	"errors"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var (
-	ErrUniqueViolation = errors.New("unique violation error")
-)
+var uniqueConstraintErrors = map[string]error{
+	"users_username_unique": ErrDuplicateUsersUsername,
+}
 
 type Models struct {
 	Users UserModelInterface

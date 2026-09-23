@@ -22,7 +22,7 @@ func TestInsert(t *testing.T) {
 		{
 			name:     "Username Unique Violation",
 			username: "luka",
-			err:      ErrUniqueViolation,
+			err:      ErrDuplicateUsersUsername,
 		},
 	}
 

@@ -42,7 +42,7 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 	}
 
 	user := User{Username: "luka"}
-	if err := user.Password.Set("luka123"); err != nil {
+	if err := user.SetPassword("luka123"); err != nil {
 		t.Fatal(err)
 	}
 

@@ -25,7 +25,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	user := data.User{Username: input.Username}
-	err = user.Password.Set(input.Password)
+	err = user.SetPassword(input.Password)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -34,7 +34,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	err = app.models.Users.Insert(r.Context(), &user)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrUniqueViolation):
+		case errors.Is(err, data.ErrDuplicateUsersUsername):
 			app.failedValidationResponse(w, map[string]string{"username": "must be unique"})
 		default:
 			app.serverErrorResponse(w, r, err)

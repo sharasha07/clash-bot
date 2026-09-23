@@ -66,7 +66,7 @@ func TestMain(m *testing.M) {
 	}
 
 	user := data.User{Username: "luka"}
-	if err := user.Password.Set("luka123"); err != nil {
+	if err := user.SetPassword("luka123"); err != nil {
 		panic(err)
 	}
 	if err := data.NewDBModels(pool).Users.Insert(ctx, &user); err != nil {

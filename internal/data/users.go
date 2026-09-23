@@ -10,6 +10,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	ErrDuplicateUsersUsername = errors.New("unique violation for users username")
+)
+
 //go:generate mockgen -source=users.go -destination=../mocks/user_model.gen.go -package=mocks
 type UserModelInterface interface {
 	Insert(ctx context.Context, user *User) error
@@ -18,26 +22,20 @@ type UserModelInterface interface {
 type User struct {
 	ID             int64     `json:"id"`
 	Username       string    `json:"username"`
-	Password       password  `json:"-"`
+	PasswordHash   string    `json:"-"`
 	GameTag        *string   `json:"game_tag"`
 	ProfilePicture *string   `json:"profile_picture"`
 	CreatedAt      time.Time `json:"created_at"`
 	Version        int32     `json:"-"`
 }
 
-type password struct {
-	plain string
-	hash  string
-}
-
-func (p *password) Set(plain string) error {
+func (u *User) SetPassword(plain string) error {
 	hash, err := argon2id.CreateHash(plain, argon2id.DefaultParams)
 	if err != nil {
 		return err
 	}
 
-	p.plain = plain
-	p.hash = hash
+	u.PasswordHash = hash
 
 	return nil
 }
@@ -57,7 +55,7 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 
 	args := []any{
 		user.Username,
-		user.Password.hash,
+		user.PasswordHash,
 		user.GameTag,
 		user.ProfilePicture,
 	}
@@ -65,7 +63,7 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 	err := m.pool.QueryRow(ctx, query, args...).Scan(
 		&user.ID,
 		&user.Username,
-		&user.Password.hash,
+		&user.PasswordHash,
 		&user.GameTag,
 		&user.ProfilePicture,
 		&user.CreatedAt,
@@ -76,7 +74,10 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 		var pgErr *pgconn.PgError
 		switch {
 		case errors.As(err, &pgErr) && pgErr.Code == "23505":
-			return ErrUniqueViolation
+			if ucErr, ok := uniqueConstraintErrors[pgErr.ConstraintName]; ok {
+				return ucErr
+			}
+			return err
 		default:
 			return err
 		}
