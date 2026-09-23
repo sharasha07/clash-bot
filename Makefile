@@ -29,11 +29,10 @@ audit:
 test/e2e: build/api
 	dotenvx run -- go test -count=1 ./e2e/
 
-## gen/mocks: regenerate mocks from interfaces (requires mockgen in PATH)
+## gen/mocks: regenerate mocks from go:generate directives
 .PHONY: gen/mocks
 gen/mocks:
-	mockgen -destination=internal/data/mocks/user_model.gen.go -package=mocks \
-		github.com/sharasha07/clash-bot/internal/data UserModelInterface
+	go generate ./internal/data
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
