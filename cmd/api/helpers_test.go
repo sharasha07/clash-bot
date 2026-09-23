@@ -73,7 +73,7 @@ func TestWriteJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := newTestApplication()
+			app := newTestApplication(t)
 			rr := httptest.NewRecorder()
 
 			err := app.writeJSON(rr, tt.wantCode, tt.data)
@@ -164,7 +164,7 @@ func TestReadJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := newTestApplication()
+			app := newTestApplication(t)
 			req := httptest.NewRequest(http.MethodGet, "/health", strings.NewReader(tt.inputBody))
 			rr := httptest.NewRecorder()
 

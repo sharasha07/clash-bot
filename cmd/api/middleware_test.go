@@ -38,7 +38,7 @@ func TestRecoverPanic(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/health", nil)
 			rr := httptest.NewRecorder()
 
-			app := newTestApplication()
+			app := newTestApplication(t)
 			app.recoverPanic(tt.stub).ServeHTTP(rr, req)
 
 			resp := rr.Result()
@@ -64,7 +64,7 @@ func TestMetrics(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	app := newTestApplication()
+	app := newTestApplication(t)
 
 	serve := func(stub http.HandlerFunc) {
 		req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -164,7 +164,7 @@ func TestEnableCORS(t *testing.T) {
 			req.Header = tt.header
 			rr := httptest.NewRecorder()
 
-			app := newTestApplication()
+			app := newTestApplication(t)
 
 			if tt.isTrusted {
 				app.cfg.CORS.TrustedOrigins = append(app.cfg.CORS.TrustedOrigins, tt.header.Get("Origin"))
@@ -226,7 +226,7 @@ func TestRateLimit(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/health", nil)
 			var rr *httptest.ResponseRecorder
 
-			app := newTestApplication()
+			app := newTestApplication(t)
 			app.cfg.Limiter.Enabled = tt.enabled
 			app.cfg.Limiter.RPS = 0
 			app.cfg.Limiter.Burst = 4

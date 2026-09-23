@@ -71,7 +71,7 @@ func TestRoutes(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 			rr := httptest.NewRecorder()
 
-			app := newTestApplication()
+			app := newTestApplication(t)
 			app.routes().ServeHTTP(rr, req)
 
 			resp := rr.Result()

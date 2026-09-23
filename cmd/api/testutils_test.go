@@ -2,22 +2,20 @@ package main
 
 import (
 	"log/slog"
+	"testing"
 
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/data/mocks"
+	"go.uber.org/mock/gomock"
 )
 
-func newTestApplication() *application {
+func newTestApplication(t *testing.T) *application {
 	return &application{
 		logger:   slog.New(slog.DiscardHandler),
 		cfg:      Config{},
 		validate: newValidate(),
-		models:   newMockModels(),
-	}
-}
-
-func newMockModels() data.Models {
-	return data.Models{
-		Users: mocks.NewUserModel(),
+		models: data.Models{
+			Users: mocks.NewMockUserModelInterface(gomock.NewController(t)),
+		},
 	}
 }
