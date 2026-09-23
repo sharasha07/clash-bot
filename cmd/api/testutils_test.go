@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/sharasha07/clash-bot/internal/data"
-	"github.com/sharasha07/clash-bot/internal/data/mocks"
+	"github.com/sharasha07/clash-bot/internal/mocks"
+
 	"go.uber.org/mock/gomock"
 )
 

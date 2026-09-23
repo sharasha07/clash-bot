@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//go:generate mockgen -source=users.go -destination=mocks/user_model.gen.go -package=mocks
+//go:generate mockgen -source=users.go -destination=../mocks/user_model.gen.go -package=mocks
 type UserModelInterface interface {
 	Insert(ctx context.Context, user *User) error
 }

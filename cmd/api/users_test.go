@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/sharasha07/clash-bot/internal/data"
-	"github.com/sharasha07/clash-bot/internal/data/mocks"
+	"github.com/sharasha07/clash-bot/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
