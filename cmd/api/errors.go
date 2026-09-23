@@ -15,7 +15,7 @@ func (app *application) sendError(w http.ResponseWriter, status int, message any
 }
 
 func (app *application) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
-	message := fmt.Sprintf("%s method is not allowed for endpoint: %s", r.Method, r.URL.String())
+	message := fmt.Sprintf("%s method is not allowed for path: %s", r.Method, r.URL.String())
 	app.sendError(w, http.StatusMethodNotAllowed, message)
 }
 

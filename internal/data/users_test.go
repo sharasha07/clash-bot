@@ -8,19 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInsert(t *testing.T) {
+func TestUserInsert(t *testing.T) {
 	tests := []struct {
 		name     string
 		username string
 		err      error
 	}{
 		{
-			name:     "Success",
+			name:     "nil error",
 			username: "saba",
 			err:      nil,
 		},
 		{
-			name:     "Username Unique Violation",
+			name:     "username unique violation error",
 			username: "luka",
 			err:      ErrDuplicateUsersUsername,
 		},

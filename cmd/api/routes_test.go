@@ -41,7 +41,7 @@ func TestRoutes(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				assert.Equal(t, "POST method is not allowed for endpoint: /health", result.Error)
+				assert.Equal(t, "POST method is not allowed for path: /health", result.Error)
 			},
 		},
 		{

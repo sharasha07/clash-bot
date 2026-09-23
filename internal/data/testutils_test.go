@@ -55,7 +55,11 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 			t.Errorf("migrate down: %v", err)
 		}
 
-		mig.Close()
+		sourceError, dbError := mig.Close()
+		if sourceError != nil || dbError != nil {
+			t.Errorf("migration source and database closing failed, source_error: %v, database_error: %v", sourceError, dbError)
+		}
+
 		pool.Close()
 	})
 
