@@ -3,14 +3,11 @@ package data
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 type UserModelInterface interface {
@@ -30,24 +27,6 @@ type User struct {
 type password struct {
 	plain string
 	hash  string
-}
-
-func (u *User) Validate(v *validator.Validator) {
-	v.Check(u.Username != "", "username", "must be provided")
-	v.Check(utf8.RuneCountInString(u.Username) <= 10, "username", "must not be more than 10 characters")
-
-	v.Check(u.Password.plain != "", "password", "must be provided")
-	v.Check(utf8.RuneCountInString(u.Password.plain) >= 8, "password", "must be at least 8 characters")
-	v.Check(utf8.RuneCountInString(u.Password.plain) <= 30, "password", "must not be more than 30 characters")
-
-	if u.Password.hash == "" {
-		panic("missing password hash for the user")
-	}
-
-	if u.GameTag != nil {
-		v.Check(*u.GameTag != "", "game_tag", "must not be empty")
-		v.Check(strings.HasPrefix(*u.GameTag, "#"), "game_tag", "must start with #")
-	}
 }
 
 func (p *password) Set(plain string) error {

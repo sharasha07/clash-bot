@@ -10,6 +10,7 @@ import (
 
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateUserHandler(t *testing.T) {
@@ -31,9 +32,7 @@ func TestCreateUserHandler(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "luka", result.User.Username)
 			},
@@ -50,9 +49,7 @@ func TestCreateUserHandler(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "must not be more than 10 characters", result.Error["username"])
 				assert.Equal(t, 1, len(result.Error))
@@ -70,9 +67,7 @@ func TestCreateUserHandler(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "must be provided", result.Error["username"])
 				assert.Equal(t, "must be provided", result.Error["password"])
@@ -91,9 +86,7 @@ func TestCreateUserHandler(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "must not be more than 10 characters", result.Error["username"])
 				assert.Equal(t, "must not be more than 30 characters", result.Error["password"])
@@ -112,9 +105,7 @@ func TestCreateUserHandler(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "must be unique", result.Error["username"])
 				assert.Equal(t, 1, len(result.Error))

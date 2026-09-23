@@ -4,17 +4,21 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sharasha07/clash-bot/internal/data"
 )
 
 type application struct {
-	logger *slog.Logger
-	cfg    Config
-	models data.Models
+	logger   *slog.Logger
+	cfg      Config
+	validate *validator.Validate
+	models   data.Models
 }
 
 type Config struct {
@@ -62,15 +66,30 @@ func main() {
 	logger.Info("successfully connected to db")
 
 	app := &application{
-		logger: logger,
-		cfg:    cfg,
-		models: data.NewDBModels(pool),
+		logger:   logger,
+		cfg:      cfg,
+		validate: newValidate(),
+		models:   data.NewDBModels(pool),
 	}
 
 	if err := app.serve(); err != nil {
 		logger.Error("server failed", "err", err)
 		os.Exit(1)
 	}
+}
+
+func newValidate() *validator.Validate {
+	v := validator.New()
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+
+		if name == "" || name == "-" {
+			return fld.Name
+		}
+		return name
+	})
+
+	return v
 }
 
 func connectToDB(cfg Config) (*pgxpool.Pool, error) {

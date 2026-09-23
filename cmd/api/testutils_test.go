@@ -9,9 +9,10 @@ import (
 
 func newTestApplication() *application {
 	return &application{
-		logger: slog.New(slog.DiscardHandler),
-		cfg:    Config{},
-		models: newMockModels(),
+		logger:   slog.New(slog.DiscardHandler),
+		cfg:      Config{},
+		validate: newValidate(),
+		models:   newMockModels(),
 	}
 }
 

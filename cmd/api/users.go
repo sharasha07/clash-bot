@@ -5,18 +5,22 @@ import (
 	"net/http"
 
 	"github.com/sharasha07/clash-bot/internal/data"
-	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username string `json:"username" validate:"required,max=10"`
+		Password string `json:"password" validate:"required,min=8,max=30"`
 	}
 
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, err)
+		return
+	}
+
+	if err := app.validate.Struct(input); err != nil {
+		app.failedValidationResponse(w, app.fieldErrors(err))
 		return
 	}
 
@@ -27,18 +31,11 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	v := validator.New()
-	if user.Validate(v); !v.Valid() {
-		app.failedValidationResponse(w, v.Errors())
-		return
-	}
-
 	err = app.models.Users.Insert(r.Context(), &user)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrUniqueViolation):
-			v.AddError("username", "must be unique")
-			app.failedValidationResponse(w, v.Errors())
+			app.failedValidationResponse(w, map[string]string{"username": "must be unique"})
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
