@@ -47,7 +47,7 @@ func TestHealth(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&result)
 				require.NoError(t, err)
 
-				assert.Equal(t, "POST method is not allowed for endpoint: /health", result.Error)
+				assert.Equal(t, "POST method is not allowed for path: /health", result.Error)
 			},
 		},
 	}
