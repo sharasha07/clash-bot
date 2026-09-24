@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -17,18 +16,23 @@ import (
 	"github.com/sharasha07/clash-bot/internal/data"
 )
 
-const apiURL = "http://localhost:8080"
+const (
+	port   = "8080"
+	apiURL = "http://localhost:" + port
+)
 
 func TestMain(m *testing.M) {
 	var exitCode int
 
 	func() {
+		// for simpler error message
 		defer func() {
 			if err := recover(); err != nil {
 				log.Fatalf("E2E test setup failed: %v", err)
 			}
 		}()
 
+		// database setup for tests
 		dsn, ok := os.LookupEnv("TEST_DB_DSN")
 		if !ok {
 			panic("TEST_DB_DSN environment variable must be set")
@@ -64,7 +68,7 @@ func TestMain(m *testing.M) {
 			}
 		}()
 
-		if err := mig.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		if err := mig.Up(); err != nil {
 			panic(err)
 		}
 
@@ -72,12 +76,14 @@ func TestMain(m *testing.M) {
 		if err := user.SetPassword("nika123"); err != nil {
 			panic(err)
 		}
+
 		if err := data.NewModels(pool).Users.Insert(ctx, &user); err != nil {
 			panic(err)
 		}
 
+		// starting API process for tests
 		cmd := exec.Command("../bin/api")
-		cmd.Env = append(os.Environ(), "DB_DSN="+dsn, "LIMITER_ENABLED=false", "PORT=8080")
+		cmd.Env = append(os.Environ(), "DB_DSN="+dsn, "LIMITER_ENABLED=false", "PORT="+port)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
@@ -89,11 +95,17 @@ func TestMain(m *testing.M) {
 			if err != nil {
 				log.Printf("killing api process failed: %v", err)
 			}
+
+			err = cmd.Wait()
+			if err != nil {
+				log.Println(err)
+			}
 		}()
 
 		deadline := time.Now().Add(10 * time.Second)
 		for {
-			resp, err := http.Get(apiURL + "/health")
+			client := http.Client{Timeout: 3 * time.Second}
+			resp, err := client.Get(apiURL + "/health")
 			if err == nil {
 				resp.Body.Close()
 				if resp.StatusCode == http.StatusOK {
@@ -107,6 +119,7 @@ func TestMain(m *testing.M) {
 			time.Sleep(100 * time.Millisecond)
 		}
 
+		// running tests
 		exitCode = m.Run()
 	}()
 

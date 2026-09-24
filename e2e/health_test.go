@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +58,8 @@ func TestHealth(t *testing.T) {
 			req, err := http.NewRequest(tt.method, apiURL+"/health", nil)
 			require.NoError(t, err)
 
-			resp, err := http.DefaultClient.Do(req)
+			client := http.Client{Timeout: 3 * time.Second}
+			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 

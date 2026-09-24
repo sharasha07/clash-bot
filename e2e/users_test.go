@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,13 +28,19 @@ func TestCreateUserHandler(t *testing.T) {
 				t.Helper()
 
 				var result struct {
-					User data.User `json:"user"`
+					User struct {
+						Username       string  `json:"username"`
+						GameTag        *string `json:"game_tag"`
+						ProfilePicture *string `json:"profile_picture"`
+					} `json:"user"`
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
 				require.NoError(t, err)
 
 				assert.Equal(t, "giorgi", result.User.Username)
+				assert.Nil(t, result.User.GameTag)
+				assert.Nil(t, result.User.ProfilePicture)
 			},
 		},
 		{
@@ -62,7 +68,8 @@ func TestCreateUserHandler(t *testing.T) {
 			req, err := http.NewRequest(tt.method, apiURL+"/v1/users", strings.NewReader(tt.input))
 			require.NoError(t, err)
 
-			resp, err := http.DefaultClient.Do(req)
+			client := http.Client{Timeout: 3 * time.Second}
+			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
