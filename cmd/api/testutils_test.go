@@ -16,7 +16,7 @@ func newTestApplication(t *testing.T) *application {
 		cfg:      Config{},
 		validate: newValidate(),
 		models: data.Models{
-			Users: mocks.NewMockUserModelInterface(gomock.NewController(t)),
+			Users: mocks.NewMockUserRepository(gomock.NewController(t)),
 		},
 	}
 }

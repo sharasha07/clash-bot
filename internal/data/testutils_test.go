@@ -46,7 +46,7 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 
-	if err := NewDBModels(pool).Users.Insert(ctx, &user); err != nil {
+	if err := NewModels(pool).Users.Insert(ctx, &user); err != nil {
 		t.Fatal(err)
 	}
 

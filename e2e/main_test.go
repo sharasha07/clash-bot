@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 		if err := user.SetPassword("nika123"); err != nil {
 			panic(err)
 		}
-		if err := data.NewDBModels(pool).Users.Insert(ctx, &user); err != nil {
+		if err := data.NewModels(pool).Users.Insert(ctx, &user); err != nil {
 			panic(err)
 		}
 

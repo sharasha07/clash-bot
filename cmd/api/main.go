@@ -69,7 +69,7 @@ func main() {
 		logger:   logger,
 		cfg:      cfg,
 		validate: newValidate(),
-		models:   data.NewDBModels(pool),
+		models:   data.NewModels(pool),
 	}
 
 	if err := app.serve(); err != nil {

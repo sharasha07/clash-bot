@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/sharasha07/clash-bot/internal/data"
 )
@@ -19,6 +20,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	input.Username = strings.TrimSpace(input.Username)
 	if err := app.validate.Struct(input); err != nil {
 		app.failedValidationResponse(w, app.fieldErrors(err))
 		return

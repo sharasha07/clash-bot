@@ -9,10 +9,10 @@ var uniqueConstraintErrors = map[string]error{
 }
 
 type Models struct {
-	Users UserModelInterface
+	Users UserRepository
 }
 
-func NewDBModels(pool *pgxpool.Pool) Models {
+func NewModels(pool *pgxpool.Pool) Models {
 	return Models{
 		Users: UserModel{pool: pool},
 	}

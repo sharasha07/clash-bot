@@ -14,8 +14,8 @@ var (
 	ErrDuplicateUsersUsername = errors.New("unique violation for users username")
 )
 
-//go:generate mockgen -source=users.go -destination=../mocks/user_model.gen.go -package=mocks
-type UserModelInterface interface {
+//go:generate mockgen -source=users.go -destination=../mocks/user_repo.gen.go -package=mocks
+type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
 }
 
@@ -48,7 +48,7 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 	query := `
 		INSERT INTO users (username, password_hash, game_tag, profile_picture)
 		VALUES ($1, $2, $3, $4)
-		RETURNING *`
+		RETURNING id, username, password_hash, game_tag, profile_picture, created_at, version`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

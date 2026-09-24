@@ -21,6 +21,18 @@ var (
 	totalResponsesSentByStatus      = expvar.NewMap("total_responses_sent_by_status")
 )
 
+func (app *application) metrics(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		totalRequestsReceived.Add(1)
+
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
+
+		totalResponsesSent.Add(1)
+		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
+		totalResponsesSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
+	})
+}
+
 func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -31,18 +43,6 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 		}()
 
 		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) metrics(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		totalRequestsReceived.Add(1)
-
-		metrics := httpsnoop.CaptureMetrics(next, w, r)
-
-		totalResponsesSent.Add(1)
-		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
-		totalResponsesSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }
 
