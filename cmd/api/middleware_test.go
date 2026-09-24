@@ -94,7 +94,7 @@ func TestEnableCORS(t *testing.T) {
 		wantHeader http.Header
 	}{
 		{
-			name:      "No Origin",
+			name:      "no origin",
 			isTrusted: false,
 			method:    http.MethodGet,
 			header:    nil,
@@ -107,7 +107,7 @@ func TestEnableCORS(t *testing.T) {
 			},
 		},
 		{
-			name:      "Trusted Origin",
+			name:      "trusted origin",
 			isTrusted: true,
 			method:    http.MethodPost,
 			header: http.Header{
@@ -123,7 +123,7 @@ func TestEnableCORS(t *testing.T) {
 			},
 		},
 		{
-			name:      "Untrusted Origin",
+			name:      "untrusted origin",
 			isTrusted: false,
 			method:    http.MethodDelete,
 			header: http.Header{
@@ -138,7 +138,7 @@ func TestEnableCORS(t *testing.T) {
 			},
 		},
 		{
-			name:      "Trusted Origin + Options method + Access-Control-Request-Method",
+			name:      "trusted origin + options method + access-control-request-method",
 			isTrusted: true,
 			method:    http.MethodOptions,
 			header: http.Header{
@@ -193,7 +193,7 @@ func TestRateLimit(t *testing.T) {
 		wantCode int
 	}{
 		{
-			name: "Too many requests + enabled",
+			name: "too many requests + enabled",
 			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 			}),
@@ -202,7 +202,7 @@ func TestRateLimit(t *testing.T) {
 			wantCode: http.StatusTooManyRequests,
 		},
 		{
-			name: "Too many requests + disabled",
+			name: "too many requests + disabled",
 			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 			}),
@@ -211,7 +211,7 @@ func TestRateLimit(t *testing.T) {
 			wantCode: http.StatusCreated,
 		},
 		{
-			name: "Normal request",
+			name: "normal request",
 			stub: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 			}),

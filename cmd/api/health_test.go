@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHealth(t *testing.T) {
@@ -27,9 +28,7 @@ func TestHealth(t *testing.T) {
 	}
 
 	err := json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	assert.Equal(t, "available", result.Status)
 }

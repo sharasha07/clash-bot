@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRoutes(t *testing.T) {
@@ -18,14 +19,14 @@ func TestRoutes(t *testing.T) {
 		checkBody func(t *testing.T, resp *http.Response)
 	}{
 		{
-			name:      "Success request on /health",
+			name:      "success request on /health",
 			method:    http.MethodGet,
 			path:      "/health",
 			wantCode:  http.StatusOK,
 			checkBody: nil,
 		},
 		{
-			name:     "Invalid method on /health",
+			name:     "invalid method on /health",
 			method:   http.MethodPost,
 			path:     "/health",
 			wantCode: http.StatusMethodNotAllowed,
@@ -37,15 +38,13 @@ func TestRoutes(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "POST method is not allowed for path: /health", result.Error)
 			},
 		},
 		{
-			name:     "Invalid path request",
+			name:     "invalid path request",
 			method:   http.MethodGet,
 			path:     "/healthinio",
 			wantCode: http.StatusNotFound,
@@ -57,9 +56,7 @@ func TestRoutes(t *testing.T) {
 				}
 
 				err := json.NewDecoder(resp.Body).Decode(&result)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 
 				assert.Equal(t, "resource not found", result.Error)
 			},
