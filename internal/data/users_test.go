@@ -12,6 +12,7 @@ func TestUserInsert(t *testing.T) {
 	tests := []struct {
 		name     string
 		username string
+		password string
 		err      error
 	}{
 		{
@@ -39,6 +40,14 @@ func TestUserInsert(t *testing.T) {
 
 			err := m.Insert(ctx, &user)
 			assert.Equal(t, tt.err, err)
+
+			if err == nil {
+				assert.Equal(t, int64(2), user.ID)
+				assert.Equal(t, tt.username, user.Username)
+				assert.Nil(t, user.GameTag)
+				assert.Nil(t, user.ProfilePicture)
+				assert.Equal(t, int32(1), user.Version)
+			}
 		})
 	}
 }

@@ -10,6 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestPool(t *testing.T) *pgxpool.Pool {
@@ -20,36 +21,18 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 		t.Fatal("TEST_DB_DSN environment variable must be set")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
 
-	if err := pool.Ping(ctx); err != nil {
-		t.Fatal(err)
-	}
+	err = pool.Ping(ctx)
+	require.NoError(t, err)
 
 	mig, err := migrate.New("file://../../migrations", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := mig.Up(); err != nil {
-		t.Fatal(err)
-	}
-
-	user := User{Username: "luka"}
-	if err := user.SetPassword("luka123"); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := NewModels(pool).Users.Insert(ctx, &user); err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mig.Down(); err != nil {
 			t.Errorf("migrate down: %v", err)
@@ -59,9 +42,17 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 		if sourceError != nil || dbError != nil {
 			t.Errorf("migration source and database closing failed, source_error: %v, database_error: %v", sourceError, dbError)
 		}
-
-		pool.Close()
 	})
+
+	err = mig.Up()
+	require.NoError(t, err)
+
+	user := User{Username: "luka"}
+	err = user.SetPassword("luka123")
+	require.NoError(t, err)
+
+	err = NewModels(pool).Users.Insert(ctx, &user)
+	require.NoError(t, err)
 
 	return pool
 }
