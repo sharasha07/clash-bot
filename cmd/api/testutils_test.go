@@ -6,7 +6,6 @@ import (
 
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/mocks"
-
 	"go.uber.org/mock/gomock"
 )
 

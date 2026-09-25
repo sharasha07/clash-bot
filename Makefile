@@ -22,17 +22,21 @@ audit: build/api
 	go fmt ./...
 	go vet ./...
 	staticcheck ./...
-	CGO_ENABLED=1 dotenvx run -- go test -race -vet=off ./...
 
-## test/e2e: build the API binary and force a real e2e run
+## test/unit: run API unit tests
+.PHONY: test/unit
+test/unit:
+	CGO_ENABLED=1 go test -race ./cmd/api/
+
+## test/integration: run repository integration tests
+.PHONY: test/integration
+test/integration:
+	dotenvx run -- go test -count=1 -race ./internal/data/
+
+## test/e2e: build the API binary and run backend e2e tests
 .PHONY: test/e2e
 test/e2e: build/api
 	dotenvx run -- go test -count=1 ./e2e/
-
-## gen/mocks: regenerate mocks from go:generate directives
-.PHONY: gen/mocks
-gen/mocks:
-	go generate ./internal/data
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql

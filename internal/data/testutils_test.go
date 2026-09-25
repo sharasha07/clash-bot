@@ -16,9 +16,9 @@ import (
 func newTestPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 
-	dsn, ok := os.LookupEnv("TEST_DB_DSN")
+	dsn, ok := os.LookupEnv("INTEGRATION_DB_DSN")
 	if !ok {
-		t.Fatal("TEST_DB_DSN environment variable must be set")
+		t.Fatal("INTEGRATION_DB_DSN environment variable must be set")
 	}
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)

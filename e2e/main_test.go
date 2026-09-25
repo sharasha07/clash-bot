@@ -21,6 +21,7 @@ const (
 	apiURL = "http://localhost:" + port
 )
 
+// uses panic for fatal errors to make sure defered functions are run after exit.
 func TestMain(m *testing.M) {
 	var exitCode int
 
@@ -33,9 +34,9 @@ func TestMain(m *testing.M) {
 		}()
 
 		// database setup for tests
-		dsn, ok := os.LookupEnv("TEST_DB_DSN")
+		dsn, ok := os.LookupEnv("E2E_DB_DSN")
 		if !ok {
-			panic("TEST_DB_DSN environment variable must be set")
+			panic("E2E_DB_DSN environment variable must be set")
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

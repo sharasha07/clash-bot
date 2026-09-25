@@ -14,7 +14,7 @@ var (
 	ErrDuplicateUsersUsername = errors.New("unique violation for users username")
 )
 
-//go:generate mockgen -source=users.go -destination=../mocks/user_repo.gen.go -package=mocks
+//go:generate mockgen -source=users.go -destination=../mocks/user_repo.go -package=mocks
 type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
 }
