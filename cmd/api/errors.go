@@ -56,3 +56,18 @@ func (app *application) invalidCredentialsResponse(w http.ResponseWriter) {
 	message := "invalid credentials"
 	app.sendError(w, http.StatusUnauthorized, message)
 }
+
+func (app *application) authenticationRequiredResponse(w http.ResponseWriter) {
+	message := "authentication required to access this endpoint"
+	app.sendError(w, http.StatusUnauthorized, message)
+}
+
+func (app *application) forbiddenResponse(w http.ResponseWriter) {
+	message := "user is not permitted to access this resource"
+	app.sendError(w, http.StatusForbidden, message)
+}
+
+func (app *application) editConflictResponse(w http.ResponseWriter) {
+	message := "edit conflict"
+	app.sendError(w, http.StatusConflict, message)
+}

@@ -7,12 +7,9 @@ import (
 )
 
 var (
-	ErrNoRecord = errors.New("no record found")
+	ErrNoRecord     = errors.New("no record found")
+	ErrEditConflict = errors.New("edit conflict")
 )
-
-var uniqueConstraintErrors = map[string]error{
-	"users_username_unique": ErrDuplicateUsersUsername,
-}
 
 type Models struct {
 	Users  UserRepository

@@ -22,6 +22,7 @@ type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (User, error)
 	GetByUsername(ctx context.Context, username string) (User, error)
+	Update(ctx context.Context, user *User) error
 }
 
 type User struct {
@@ -83,10 +84,12 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 		var pgErr *pgconn.PgError
 		switch {
 		case errors.As(err, &pgErr) && pgErr.Code == "23505":
-			if ucErr, ok := uniqueConstraintErrors[pgErr.ConstraintName]; ok {
-				return ucErr
+			switch pgErr.ConstraintName {
+			case "users_username_unique":
+				return ErrDuplicateUsersUsername
+			default:
+				return err
 			}
-			return err
 		default:
 			return err
 		}
@@ -155,4 +158,40 @@ func (m UserModel) GetByUsername(ctx context.Context, username string) (User, er
 	}
 
 	return u, nil
+}
+
+func (m UserModel) Update(ctx context.Context, user *User) error {
+	query := `
+		UPDATE users
+		SET username = $1, password_hash = $2, game_tag = $3, profile_picture = $4, version = version + 1
+		WHERE id = $5 and version = $6
+		RETURNING version`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	args := []any{user.Username, user.PasswordHash, user.GameTag, user.ProfilePicture, user.ID, user.Version}
+
+	err := m.pool.QueryRow(ctx, query, args...).Scan(
+		&user.Version,
+	)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return ErrEditConflict
+		case errors.As(err, &pgErr) && pgErr.Code == "23505":
+			switch pgErr.ConstraintName {
+			case "users_username_unique":
+				return ErrDuplicateUsersUsername
+			default:
+				return err
+			}
+		default:
+			return err
+		}
+	}
+
+	return nil
 }

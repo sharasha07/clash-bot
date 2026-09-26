@@ -14,13 +14,12 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password" validate:"required,min=8,max=30"`
 	}
 
-	err := app.readJSON(w, r, &input)
-	if err != nil {
+	if err := app.readJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, err)
 		return
 	}
 
-	if err = app.validate.Struct(&input); err != nil {
+	if err := app.validate.Struct(&input); err != nil {
 		app.failedValidationResponse(w, app.fieldErrors(err))
 		return
 	}
@@ -69,6 +68,7 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		"access_token":  jwtToken,
 		"refresh_token": refreshToken,
 	})
+
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
