@@ -16,7 +16,7 @@ build/api:
 
 ## audit: tidy and vendor dependencies and format, vet and test all code
 .PHONY: audit
-audit: build/api
+audit:
 	go mod tidy
 	go mod verify
 	go fmt ./...

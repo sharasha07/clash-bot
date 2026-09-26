@@ -1,7 +1,13 @@
 package data
 
 import (
+	"errors"
+
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var (
+	ErrNoRecord = errors.New("no record found")
 )
 
 var uniqueConstraintErrors = map[string]error{

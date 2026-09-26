@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/argon2id"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -17,6 +18,7 @@ var (
 //go:generate mockgen -source=users.go -destination=../mocks/user_repo.go -package=mocks
 type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
+	GetByID(ctx context.Context, id int64) (User, error)
 }
 
 type User struct {
@@ -84,4 +86,34 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 	}
 
 	return nil
+}
+
+func (m UserModel) GetByID(ctx context.Context, id int64) (User, error) {
+	query := `
+		SELECT id, username, password_hash, game_tag, profile_picture, created_at, version
+		FROM users
+		WHERE id = $1`
+
+	var user User
+
+	err := m.pool.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.GameTag,
+		&user.ProfilePicture,
+		&user.CreatedAt,
+		&user.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return User{}, ErrNoRecord
+		default:
+			return User{}, err
+		}
+	}
+
+	return user, nil
 }

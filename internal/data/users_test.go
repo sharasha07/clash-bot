@@ -30,12 +30,11 @@ func TestUserInsert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pool := newTestPool(t)
-
 			m := UserModel{pool: pool}
 
 			user := User{Username: tt.username}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 
 			err := m.Insert(ctx, &user)
@@ -48,6 +47,30 @@ func TestUserInsert(t *testing.T) {
 				assert.Nil(t, user.ProfilePicture)
 				assert.Equal(t, int32(1), user.Version)
 			}
+		})
+	}
+}
+
+func TestUserGetByID(t *testing.T) {
+	tests := []struct {
+		name string
+		id   int64
+		err  error
+	}{
+		{"no record", 2, ErrNoRecord},
+		{"success", 1, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pool := newTestPool(t)
+			m := UserModel{pool: pool}
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			_, err := m.GetByID(ctx, tt.id)
+			assert.Equal(t, tt.err, err)
 		})
 	}
 }
