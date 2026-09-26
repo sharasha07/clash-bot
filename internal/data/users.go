@@ -15,6 +15,8 @@ var (
 	ErrDuplicateUsersUsername = errors.New("unique violation for users username")
 )
 
+var AnonymousUser *User
+
 //go:generate mockgen -source=users.go -destination=../mocks/user_repo.go -package=mocks
 type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
@@ -29,6 +31,10 @@ type User struct {
 	ProfilePicture *string   `json:"profile_picture"`
 	CreatedAt      time.Time `json:"created_at"`
 	Version        int32     `json:"-"`
+}
+
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 func (u *User) SetPassword(plain string) error {

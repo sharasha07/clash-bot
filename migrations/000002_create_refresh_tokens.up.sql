@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    token_hash BYTEA PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ(0) NOT NULL,
+    created_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW()
+);

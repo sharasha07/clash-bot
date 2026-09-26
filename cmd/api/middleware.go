@@ -1,16 +1,20 @@
 package main
 
 import (
+	"errors"
 	"expvar"
 	"fmt"
 	"net"
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/felixge/httpsnoop"
+	"github.com/pascaldekloe/jwt"
+	"github.com/sharasha07/clash-bot/internal/data"
 	"golang.org/x/time/rate"
 )
 
@@ -122,6 +126,58 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 			mu.Unlock()
 		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			r = contextSetUser(r, data.AnonymousUser)
+
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w)
+			return
+		}
+
+		token := parts[1]
+
+		claims, err := jwt.HMACCheck([]byte(token), []byte(app.cfg.JWT.Secret))
+		if err != nil {
+			app.invalidAuthenticationTokenResponse(w)
+			return
+		}
+
+		if !claims.Valid(time.Now()) || claims.Issuer != "github.com/sharasha07/clash-bot" || !claims.AcceptAudience("github.com/sharasha07/clash-bot") {
+			app.invalidAuthenticationTokenResponse(w)
+			return
+		}
+
+		userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		user, err := app.models.Users.GetByID(r.Context(), userID)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrNoRecord):
+				app.invalidAuthenticationTokenResponse(w)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		r = contextSetUser(r, &user)
 
 		next.ServeHTTP(w, r)
 	})

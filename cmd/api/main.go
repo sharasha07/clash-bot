@@ -46,6 +46,12 @@ type Config struct {
 		MaxConns    int32         `env:"DB_MAX_CONNS,required"`
 		MaxIdleTime time.Duration `env:"DB_MAX_IDLE_TIME,required"`
 	}
+
+	JWT struct {
+		Secret     string        `env:"JWT_SECRET,required"`
+		AccessTTL  time.Duration `env:"JWT_ACCESS_TTL,required"`
+		RefreshTTL time.Duration `env:"JWT_REFRESH_TTL,required"`
+	}
 }
 
 func main() {

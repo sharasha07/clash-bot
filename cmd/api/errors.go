@@ -46,3 +46,8 @@ func (app *application) badRequestResponse(w http.ResponseWriter, err error) {
 func (app *application) failedValidationResponse(w http.ResponseWriter, errors map[string]string) {
 	app.sendError(w, http.StatusUnprocessableEntity, errors)
 }
+
+func (app *application) invalidAuthenticationTokenResponse(w http.ResponseWriter) {
+	message := "invalid authentication token"
+	app.sendError(w, http.StatusUnauthorized, message)
+}
