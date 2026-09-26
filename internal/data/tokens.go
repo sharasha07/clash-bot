@@ -14,23 +14,30 @@ import (
 	"github.com/pascaldekloe/jwt"
 )
 
+//go:generate mockgen -source=tokens.go -destination=../mocks/token_repo.go -package=mocks
+type TokenRepository interface {
+	Insert(ctx context.Context, token string, userID int64, ttl time.Duration) error
+	GetUserID(ctx context.Context, token string) (int64, error)
+	Delete(ctx context.Context, token string) error
+}
+
 type Token struct {
 	TokenHash []byte
-	UserID    int
+	UserID    int64
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }
 
-func NewAccessToken(userID int, jwtSecret string, ttl time.Duration) (string, error) {
+func NewAccessToken(userID int64, jwtSecret string, ttl time.Duration) (string, error) {
 	now := time.Now()
 
 	claims := jwt.Claims{
-		Subject:   strconv.FormatInt(int64(userID), 10),
+		Subject:   strconv.FormatInt(userID, 10),
 		Issued:    jwt.NewNumericTime(now),
 		NotBefore: jwt.NewNumericTime(now),
 		Expires:   jwt.NewNumericTime(now.Add(ttl)),
 		Issuer:    "github.com/sharasha07/clash-bot",
-		Audiences: []string{"github.com/sharasha07/clashbot"},
+		Audiences: []string{"github.com/sharasha07/clash-bot"},
 	}
 
 	jwtBytes, err := claims.HMACSign(jwt.HS256, []byte(jwtSecret))
@@ -60,7 +67,7 @@ type TokenModel struct {
 	pool *pgxpool.Pool
 }
 
-func (m TokenModel) Insert(ctx context.Context, token string, userID int, ttl time.Duration) error {
+func (m TokenModel) Insert(ctx context.Context, token string, userID int64, ttl time.Duration) error {
 	query := `
 		INSERT INTO refresh_tokens(token_hash, user_id, expires_at)
 		VALUES ($1, $2, $3)
@@ -75,7 +82,7 @@ func (m TokenModel) Insert(ctx context.Context, token string, userID int, ttl ti
 	return err
 }
 
-func (m TokenModel) GetUserID(ctx context.Context, token string) (int, error) {
+func (m TokenModel) GetUserID(ctx context.Context, token string) (int64, error) {
 	query := `
 		SELECT user_id FROM refresh_tokens
 		WHERE token_hash = $1 AND expires_at > NOW()`
@@ -83,7 +90,7 @@ func (m TokenModel) GetUserID(ctx context.Context, token string) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	var userID int
+	var userID int64
 	err := m.pool.QueryRow(ctx, query, tokenHash(token)).Scan(&userID)
 	if err != nil {
 		switch {

@@ -21,6 +21,7 @@ var AnonymousUser *User
 type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (User, error)
+	GetByUsername(ctx context.Context, username string) (User, error)
 }
 
 type User struct {
@@ -122,4 +123,36 @@ func (m UserModel) GetByID(ctx context.Context, id int64) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (m UserModel) GetByUsername(ctx context.Context, username string) (User, error) {
+	query := `
+		SELECT id, username, password_hash, game_tag, profile_picture, created_at, version
+		FROM users
+		WHERE username = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var u User
+	err := m.pool.QueryRow(ctx, query, username).Scan(
+		&u.ID,
+		&u.Username,
+		&u.PasswordHash,
+		&u.GameTag,
+		&u.ProfilePicture,
+		&u.CreatedAt,
+		&u.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return User{}, ErrNoRecord
+		default:
+			return User{}, err
+		}
+	}
+
+	return u, nil
 }

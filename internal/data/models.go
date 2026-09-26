@@ -15,11 +15,13 @@ var uniqueConstraintErrors = map[string]error{
 }
 
 type Models struct {
-	Users UserRepository
+	Users  UserRepository
+	Tokens TokenRepository
 }
 
 func NewModels(pool *pgxpool.Pool) Models {
 	return Models{
-		Users: UserModel{pool: pool},
+		Users:  UserModel{pool: pool},
+		Tokens: TokenModel{pool: pool},
 	}
 }

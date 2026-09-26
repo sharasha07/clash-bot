@@ -51,3 +51,8 @@ func (app *application) invalidAuthenticationTokenResponse(w http.ResponseWriter
 	message := "invalid authentication token"
 	app.sendError(w, http.StatusUnauthorized, message)
 }
+
+func (app *application) invalidCredentialsResponse(w http.ResponseWriter) {
+	message := "invalid credentials"
+	app.sendError(w, http.StatusUnauthorized, message)
+}
