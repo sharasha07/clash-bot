@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/caarlos0/env/v11"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,6 +23,7 @@ type application struct {
 	cfg      Config
 	validate *validator.Validate
 	models   data.Models
+	s3Client *s3.Client
 }
 
 type Config struct {
@@ -52,6 +57,14 @@ type Config struct {
 		AccessTTL  time.Duration `env:"JWT_ACCESS_TTL,required"`
 		RefreshTTL time.Duration `env:"JWT_REFRESH_TTL,required"`
 	}
+
+	R2 struct {
+		AccessKey       string `env:"R2_ACCESS_KEY,required"`
+		SecretAccessKey string `env:"R2_SECRET_ACCESS_KEY,required"`
+		Bucket          string `env:"R2_BUCKET,required"`
+		PublicURL       string `env:"R2_PUBLIC_URL,required"`
+		S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
+	}
 }
 
 func main() {
@@ -71,11 +84,22 @@ func main() {
 	defer pool.Close()
 	logger.Info("successfully connected to db")
 
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+
+	s3Client := s3.New(s3.Options{
+		Credentials:  credentials.NewStaticCredentialsProvider(cfg.R2.AccessKey, cfg.R2.SecretAccessKey, ""),
+		Region:       "auto",
+		BaseEndpoint: aws.String(cfg.R2.S3ApiEndpoint),
+		UsePathStyle: true,
+		HTTPClient:   httpClient,
+	})
+
 	app := &application{
 		logger:   logger,
 		cfg:      cfg,
 		validate: newValidate(),
 		models:   data.NewModels(pool),
+		s3Client: s3Client,
 	}
 
 	if err := app.serve(); err != nil {

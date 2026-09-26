@@ -16,6 +16,7 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/debug", expvar.Handler())
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.createUserHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/users/:id/profile-picture", app.uploadProfilePicture)
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.showUserHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.updateUserHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserHandler)
