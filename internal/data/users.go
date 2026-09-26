@@ -23,6 +23,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (User, error)
 	GetByUsername(ctx context.Context, username string) (User, error)
 	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type User struct {
@@ -191,6 +192,26 @@ func (m UserModel) Update(ctx context.Context, user *User) error {
 		default:
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m UserModel) Delete(ctx context.Context, id int64) error {
+	query := `
+		DELETE FROM users
+		WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	tag, err := m.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return ErrNoRecord
 	}
 
 	return nil

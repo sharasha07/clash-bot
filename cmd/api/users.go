@@ -147,3 +147,35 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil || id <= 0 {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	user := contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
+		return
+	}
+
+	if user.ID != id {
+		app.forbiddenResponse(w)
+		return
+	}
+
+	err = app.models.Users.Delete(r.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecord):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
