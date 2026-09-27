@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -11,10 +12,11 @@ import (
 
 //go:generate mockgen -source=chats.go -destination=../mocks/chat_repo.go -package=mocks
 type ChatRepository interface {
+	GetAll(ctx context.Context, user_id int64, name string, filters Filters) ([]Chat, error)
 	Insert(ctx context.Context, chat *Chat) error
 	Get(ctx context.Context, id, user_id int64) (Chat, error)
 	Update(ctx context.Context, chat *Chat) error
-	Delete(ctx context.Context, id int64) error
+	Delete(ctx context.Context, id, user_id int64) error
 }
 
 type Chat struct {
@@ -23,11 +25,56 @@ type Chat struct {
 	Name      string    `json:"name"`
 	UpdatedAt time.Time `json:"updated_at"`
 	CreatedAt time.Time `json:"created_at"`
-	Version   int       `json:"-"`
+	Version   int32     `json:"-"`
 }
 
 type ChatModel struct {
 	pool *pgxpool.Pool
+}
+
+func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filters Filters) ([]Chat, error) {
+	query := fmt.Sprintf(`
+		SELECT id, user_id, name, updated_at, created_at, version
+		FROM chats
+		WHERE user_id = $1 AND (name=$2 OR $2='')
+		ORDER BY %s %s
+		LIMIT $3 OFFSET $4`, filters.SortColumn(), filters.SortOrder())
+
+	args := []any{user_id, name, filters.PageSize, filters.Offset()}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rows, err := m.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var chats []Chat
+	for rows.Next() {
+		var chat Chat
+		err := rows.Scan(
+			&chat.ID,
+			&chat.UserID,
+			&chat.Name,
+			&chat.UpdatedAt,
+			&chat.CreatedAt,
+			&chat.Version,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		chats = append(chats, chat)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return chats, nil
 }
 
 func (m ChatModel) Insert(ctx context.Context, chat *Chat) error {
@@ -87,7 +134,7 @@ func (m ChatModel) Update(ctx context.Context, chat *Chat) error {
 		UPDATE chats
 		SET name = $1, updated_at = NOW(), version = version + 1
 		WHERE id = $2 AND user_id = $3 AND version = $4
-		RETURNING id, user_id, name, created_at, updated_at, version`
+		RETURNING version`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -95,11 +142,6 @@ func (m ChatModel) Update(ctx context.Context, chat *Chat) error {
 	args := []any{chat.Name, chat.ID, chat.UserID, chat.Version}
 
 	err := m.pool.QueryRow(ctx, query, args...).Scan(
-		&chat.ID,
-		&chat.UserID,
-		&chat.Name,
-		&chat.CreatedAt,
-		&chat.UpdatedAt,
 		&chat.Version,
 	)
 
@@ -115,15 +157,15 @@ func (m ChatModel) Update(ctx context.Context, chat *Chat) error {
 	return nil
 }
 
-func (m ChatModel) Delete(ctx context.Context, id int64) error {
+func (m ChatModel) Delete(ctx context.Context, id, user_id int64) error {
 	query := `
 		DELETE FROM chats
-		WHERE id = $1`
+		WHERE id = $1 and user_id = $2`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	tag, err := m.pool.Exec(ctx, query, id)
+	tag, err := m.pool.Exec(ctx, query, id, user_id)
 	if err != nil {
 		return err
 	}

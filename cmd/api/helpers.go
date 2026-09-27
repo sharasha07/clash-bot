@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/sharasha07/clash-bot/internal/data"
 )
 
 type envelope map[string]any
@@ -23,6 +24,33 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (app *application) readFilters(r *http.Request, f *data.Filters) error {
+	qs := r.URL.Query()
+
+	if qs.Has("page") {
+		page, err := strconv.ParseInt(qs.Get("page"), 10, 64)
+		if err != nil {
+			return err
+		}
+		f.Page = int(page)
+	} else {
+		f.Page = 1
+	}
+
+	if qs.Has("page_size") {
+		pageSize, err := strconv.ParseInt(qs.Get("page_size"), 10, 64)
+		if err != nil {
+			return err
+		}
+		f.PageSize = int(pageSize)
+	} else {
+		f.PageSize = 5
+	}
+
+	f.Sort = qs.Get("sort")
+	return nil
 }
 
 func (app *application) writeJSON(w http.ResponseWriter, status int, env envelope) error {
