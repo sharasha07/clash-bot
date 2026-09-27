@@ -132,3 +132,30 @@ func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (app *application) deleteChatHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil || id <= 0 {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	user := contextGetUser(r)
+
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
+		return
+	}
+
+	if err := app.models.Chats.Delete(r.Context(), id); err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecord):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

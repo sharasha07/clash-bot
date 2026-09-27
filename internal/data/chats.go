@@ -14,6 +14,7 @@ type ChatRepository interface {
 	Insert(ctx context.Context, chat *Chat) error
 	Get(ctx context.Context, id, user_id int64) (Chat, error)
 	Update(ctx context.Context, chat *Chat) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type Chat struct {
@@ -109,6 +110,26 @@ func (m ChatModel) Update(ctx context.Context, chat *Chat) error {
 		default:
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m ChatModel) Delete(ctx context.Context, id int64) error {
+	query := `
+		DELETE FROM chats
+		WHERE id = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	tag, err := m.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return ErrNoRecord
 	}
 
 	return nil
