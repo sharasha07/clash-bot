@@ -24,7 +24,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/chats", nil)
 	router.HandlerFunc(http.MethodPost, "/v1/chats", app.createChatHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/chats/:id", app.showChatHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/chats/:id", nil)
+	router.HandlerFunc(http.MethodPatch, "/v1/chats/:id", app.updateChatHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/chats/:id", nil)
 
 	router.HandlerFunc(http.MethodPost, "/v1/chats/:id/messages", nil)

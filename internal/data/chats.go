@@ -13,6 +13,7 @@ import (
 type ChatRepository interface {
 	Insert(ctx context.Context, chat *Chat) error
 	Get(ctx context.Context, id, user_id int64) (Chat, error)
+	Update(ctx context.Context, chat *Chat) error
 }
 
 type Chat struct {
@@ -78,4 +79,37 @@ func (m ChatModel) Get(ctx context.Context, id, user_id int64) (Chat, error) {
 	}
 
 	return chat, nil
+}
+
+func (m ChatModel) Update(ctx context.Context, chat *Chat) error {
+	query := `
+		UPDATE chats
+		SET name = $1, updated_at = NOW(), version = version + 1
+		WHERE id = $2 AND user_id = $3 AND version = $4
+		RETURNING id, user_id, name, created_at, updated_at, version`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	args := []any{chat.Name, chat.ID, chat.UserID, chat.Version}
+
+	err := m.pool.QueryRow(ctx, query, args...).Scan(
+		&chat.ID,
+		&chat.UserID,
+		&chat.Name,
+		&chat.CreatedAt,
+		&chat.UpdatedAt,
+		&chat.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
