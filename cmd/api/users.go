@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"net/url"
@@ -105,7 +107,7 @@ func (app *application) uploadProfilePicture(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	supportedFormats := []string{"jpeg", "png", "webp"}
+	supportedFormats := []string{"jpeg", "png"}
 	if !slices.Contains(supportedFormats, format) {
 		app.badRequestResponse(w, errors.New("unsupported image type"))
 		return
@@ -178,9 +180,13 @@ func (app *application) showUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	user := contextGetUser(r)
-
 	if user.IsAnonymous() {
 		app.authenticationRequiredResponse(w)
+		return
+	}
+
+	if id != user.ID {
+		app.forbiddenResponse(w)
 		return
 	}
 
@@ -211,7 +217,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 
 	var input struct {
 		Username *string `json:"username" validate:"omitempty,max=10"`
-		Passowrd *string `json:"password" validate:"omitempty,min=8,max=30"`
+		Password *string `json:"password" validate:"omitempty,min=8,max=30"`
 		GameTag  *string `json:"game_tag" validate:"omitempty"`
 	}
 
@@ -229,8 +235,8 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 		user.Username = *input.Username
 	}
 
-	if input.Passowrd != nil {
-		err := user.SetPassword(*input.Passowrd)
+	if input.Password != nil {
+		err := user.SetPassword(*input.Password)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return

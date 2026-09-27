@@ -107,6 +107,9 @@ func (m UserModel) GetByID(ctx context.Context, id int64) (User, error) {
 
 	var user User
 
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	err := m.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Username,

@@ -47,11 +47,11 @@ func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filte
 
 	rows, err := m.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return []Chat{}, err
 	}
 	defer rows.Close()
 
-	var chats []Chat
+	chats := []Chat{}
 	for rows.Next() {
 		var chat Chat
 		err := rows.Scan(
@@ -64,14 +64,14 @@ func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filte
 		)
 
 		if err != nil {
-			return nil, err
+			return []Chat{}, err
 		}
 
 		chats = append(chats, chat)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return []Chat{}, err
 	}
 
 	return chats, nil
