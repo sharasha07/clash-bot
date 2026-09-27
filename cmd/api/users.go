@@ -177,14 +177,10 @@ func (app *application) showUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := app.models.Users.GetByID(r.Context(), id)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrNoRecord):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
+	user := contextGetUser(r)
+
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
 		return
 	}
 

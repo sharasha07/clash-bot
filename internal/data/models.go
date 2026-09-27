@@ -14,11 +14,13 @@ var (
 type Models struct {
 	Users  UserRepository
 	Tokens TokenRepository
+	Chats  ChatRepository
 }
 
 func NewModels(pool *pgxpool.Pool) Models {
 	return Models{
 		Users:  UserModel{pool: pool},
 		Tokens: TokenModel{pool: pool},
+		Chats:  ChatModel{pool: pool},
 	}
 }

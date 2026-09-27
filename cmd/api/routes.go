@@ -22,15 +22,15 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserHandler)
 
 	router.HandlerFunc(http.MethodGet, "/v1/chats", nil)
-	router.HandlerFunc(http.MethodPost, "/v1/chats", nil)
-	router.HandlerFunc(http.MethodGet, "/v1/chats/:id", nil)
+	router.HandlerFunc(http.MethodPost, "/v1/chats", app.createChatHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/chats/:id", app.showChatHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/chats/:id", nil)
 	router.HandlerFunc(http.MethodDelete, "/v1/chats/:id", nil)
 
 	router.HandlerFunc(http.MethodPost, "/v1/chats/:id/messages", nil)
 	router.HandlerFunc(http.MethodGet, "/v1/chats/:id/messages", nil)
 
-	router.HandlerFunc(http.MethodGet, "/v1/auth/login", app.loginHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/auth/login", app.loginHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/refresh", app.refreshTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/logout", app.logoutHandler)
 
