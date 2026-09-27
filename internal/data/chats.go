@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 //go:generate mockgen -source=chats.go -destination=../mocks/chat_repo.go -package=mocks
@@ -28,6 +30,11 @@ type Chat struct {
 	Version   int32     `json:"-"`
 }
 
+func (c Chat) Validate(v *validator.Validator) {
+	v.Check(c.Name != "", "name", "must not be empty")
+	v.Check(utf8.RuneCountInString(c.Name) <= 10, "name", "must be a maximum of 10")
+}
+
 type ChatModel struct {
 	pool *pgxpool.Pool
 }
@@ -36,7 +43,7 @@ func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filte
 	query := fmt.Sprintf(`
 		SELECT id, user_id, name, updated_at, created_at, version
 		FROM chats
-		WHERE user_id = $1 AND (name=$2 OR $2='')
+		WHERE user_id = $1 AND ($2 = '' OR name ILIKE '%%' || $2 || '%%')
 		ORDER BY %s %s
 		LIMIT $3 OFFSET $4`, filters.SortColumn(), filters.SortOrder())
 
@@ -47,7 +54,7 @@ func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filte
 
 	rows, err := m.pool.Query(ctx, query, args...)
 	if err != nil {
-		return []Chat{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -64,14 +71,14 @@ func (m ChatModel) GetAll(ctx context.Context, user_id int64, name string, filte
 		)
 
 		if err != nil {
-			return []Chat{}, err
+			return nil, err
 		}
 
 		chats = append(chats, chat)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []Chat{}, err
+		return nil, err
 	}
 
 	return chats, nil

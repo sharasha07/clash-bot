@@ -6,21 +6,17 @@ import (
 
 	"github.com/alexedwards/argon2id"
 	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Username string `json:"username" validate:"required,max=10"`
-		Password string `json:"password" validate:"required,min=8,max=30"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, err)
-		return
-	}
-
-	if err := app.validate.Struct(&input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
 		return
 	}
 
@@ -35,7 +31,7 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(input.Password, string(user.PasswordHash))
+	match, err := argon2id.ComparePasswordAndHash(input.Password, string(user.Password.Hash))
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -77,17 +73,18 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) refreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		RefreshToken string `json:"refresh_token" validate:"required"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
-	err := app.readJSON(w, r, &input)
-	if err != nil {
+	if err := app.readJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, err)
 		return
 	}
 
-	if err = app.validate.Struct(&input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
+	if input.RefreshToken == "" {
+		v := validator.New()
+		v.Add("refresh_token", "must be provided")
+		app.failedValidationResponse(w, v.Errors)
 		return
 	}
 
@@ -126,8 +123,10 @@ func (app *application) logoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = app.validate.Struct(&input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
+	if input.RefreshToken == "" {
+		v := validator.New()
+		v.Add("refresh_token", "must be provided")
+		app.failedValidationResponse(w, v.Errors)
 		return
 	}
 

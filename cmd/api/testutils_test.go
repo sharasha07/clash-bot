@@ -11,9 +11,8 @@ import (
 
 func newTestApplication(t *testing.T) *application {
 	return &application{
-		logger:   slog.New(slog.DiscardHandler),
-		cfg:      Config{},
-		validate: newValidate(),
+		logger: slog.New(slog.DiscardHandler),
+		cfg:    Config{},
 		models: data.Models{
 			Users: mocks.NewMockUserRepository(gomock.NewController(t)),
 		},

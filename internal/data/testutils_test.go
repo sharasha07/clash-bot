@@ -48,7 +48,7 @@ func newTestPool(t *testing.T) *pgxpool.Pool {
 	require.NoError(t, err)
 
 	user := User{Username: "luka"}
-	err = user.SetPassword("luka123")
+	err = user.Password.SetHash("luka123")
 	require.NoError(t, err)
 
 	err = NewModels(pool).Users.Insert(ctx, &user)

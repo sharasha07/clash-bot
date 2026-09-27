@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 type envelope map[string]any
@@ -26,31 +27,30 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
-func (app *application) readFilters(r *http.Request, f *data.Filters) error {
-	qs := r.URL.Query()
+func (app *application) readString(qs url.Values, key string, defaultValue string) string {
+	s := qs.Get(key)
 
-	if qs.Has("page") {
-		page, err := strconv.ParseInt(qs.Get("page"), 10, 64)
-		if err != nil {
-			return err
-		}
-		f.Page = int(page)
-	} else {
-		f.Page = 1
+	if s == "" {
+		return defaultValue
 	}
 
-	if qs.Has("page_size") {
-		pageSize, err := strconv.ParseInt(qs.Get("page_size"), 10, 64)
-		if err != nil {
-			return err
-		}
-		f.PageSize = int(pageSize)
-	} else {
-		f.PageSize = 5
+	return s
+}
+
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
 	}
 
-	f.Sort = qs.Get("sort")
-	return nil
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.Add(key, "must be an integer value")
+		return defaultValue
+	}
+
+	return i
 }
 
 func (app *application) writeJSON(w http.ResponseWriter, status int, env envelope) error {

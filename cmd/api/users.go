@@ -17,46 +17,46 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Username string `json:"username" validate:"required,max=10"`
-		Password string `json:"password" validate:"required,min=8,max=30"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 
-	err := app.readJSON(w, r, &input)
-	if err != nil {
+	if err := app.readJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, err)
 		return
 	}
 
-	input.Username = strings.TrimSpace(input.Username)
-	if err := app.validate.Struct(input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
+	user := data.User{Username: strings.TrimSpace(input.Username)}
+	user.Password.Plain = input.Password
+
+	v := validator.New()
+	if user.Validate(v); !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
 		return
 	}
 
-	user := data.User{Username: input.Username}
-	err = user.SetPassword(input.Password)
-	if err != nil {
+	if err := user.Password.SetHash(input.Password); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	err = app.models.Users.Insert(r.Context(), &user)
-	if err != nil {
+	if err := app.models.Users.Insert(r.Context(), &user); err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateUsersUsername):
-			app.failedValidationResponse(w, map[string]string{"username": "must be unique"})
+			v.Add("username", "must be unique")
+			app.failedValidationResponse(w, v.Errors)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user})
-	if err != nil {
+	if err := app.writeJSON(w, http.StatusCreated, envelope{"user": user}); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -216,18 +216,13 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Username *string `json:"username" validate:"omitempty,max=10"`
-		Password *string `json:"password" validate:"omitempty,min=8,max=30"`
-		GameTag  *string `json:"game_tag" validate:"omitempty"`
+		Username *string `json:"username"`
+		Password *string `json:"password"`
+		GameTag  *string `json:"game_tag"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
 		app.badRequestResponse(w, err)
-		return
-	}
-
-	if err := app.validate.Struct(&input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
 		return
 	}
 
@@ -236,24 +231,25 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if input.Password != nil {
-		err := user.SetPassword(*input.Password)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		user.Password.Plain = *input.Password
 	}
 
 	if input.GameTag != nil {
 		user.GameTag = input.GameTag
 	}
 
+	v := validator.New()
+	if user.Validate(v); !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
+		return
+	}
+
 	err = app.models.Users.Update(r.Context(), user)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateUsersUsername):
-			app.failedValidationResponse(w, map[string]string{
-				"username": "must be unique",
-			})
+			v.Add("username", "must be unique")
+			app.failedValidationResponse(w, v.Errors)
 		case errors.Is(err, data.ErrEditConflict):
 			app.editConflictResponse(w)
 		default:

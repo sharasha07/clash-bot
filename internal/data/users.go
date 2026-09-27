@@ -3,12 +3,15 @@ package data
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 var (
@@ -29,24 +32,43 @@ type UserRepository interface {
 type User struct {
 	ID             int64     `json:"id"`
 	Username       string    `json:"username"`
-	PasswordHash   string    `json:"-"`
+	Password       password  `json:"-"`
 	GameTag        *string   `json:"game_tag"`
 	ProfilePicture *string   `json:"profile_picture"`
 	CreatedAt      time.Time `json:"created_at"`
 	Version        int32     `json:"-"`
 }
 
+func (u *User) Validate(v *validator.Validator) {
+	v.Check(u.Username != "", "username", "must not be empty")
+	v.Check(utf8.RuneCountInString(u.Username) <= 15, "username", "must not be more than 15 characters")
+
+	v.Check(u.Password.Plain != "", "password", "must not be empty")
+	v.Check(utf8.RuneCountInString(u.Password.Plain) > 8, "password", "must be more than 8 characters")
+	v.Check(utf8.RuneCountInString(u.Password.Plain) < 40, "password", "must not be more than 40 characters")
+
+	if u.GameTag != nil {
+		v.Check(*u.GameTag != "", "game_tag", "must not be empty")
+		v.Check(strings.HasPrefix(*u.GameTag, "#"), "game_tag", "must start with #")
+	}
+}
+
 func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser
 }
 
-func (u *User) SetPassword(plain string) error {
+type password struct {
+	Plain string
+	Hash  string
+}
+
+func (p *password) SetHash(plain string) error {
 	hash, err := argon2id.CreateHash(plain, argon2id.DefaultParams)
 	if err != nil {
 		return err
 	}
 
-	u.PasswordHash = hash
+	p.Hash = hash
 
 	return nil
 }
@@ -66,7 +88,7 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 
 	args := []any{
 		user.Username,
-		user.PasswordHash,
+		user.Password.Hash,
 		user.GameTag,
 		user.ProfilePicture,
 	}
@@ -74,7 +96,7 @@ func (m UserModel) Insert(ctx context.Context, user *User) error {
 	err := m.pool.QueryRow(ctx, query, args...).Scan(
 		&user.ID,
 		&user.Username,
-		&user.PasswordHash,
+		&user.Password.Hash,
 		&user.GameTag,
 		&user.ProfilePicture,
 		&user.CreatedAt,
@@ -113,7 +135,7 @@ func (m UserModel) GetByID(ctx context.Context, id int64) (User, error) {
 	err := m.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Username,
-		&user.PasswordHash,
+		&user.Password.Hash,
 		&user.GameTag,
 		&user.ProfilePicture,
 		&user.CreatedAt,
@@ -145,7 +167,7 @@ func (m UserModel) GetByUsername(ctx context.Context, username string) (User, er
 	err := m.pool.QueryRow(ctx, query, username).Scan(
 		&u.ID,
 		&u.Username,
-		&u.PasswordHash,
+		&u.Password.Hash,
 		&u.GameTag,
 		&u.ProfilePicture,
 		&u.CreatedAt,
@@ -174,7 +196,7 @@ func (m UserModel) Update(ctx context.Context, user *User) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	args := []any{user.Username, user.PasswordHash, user.GameTag, user.ProfilePicture, user.ID, user.Version}
+	args := []any{user.Username, user.Password.Hash, user.GameTag, user.ProfilePicture, user.ID, user.Version}
 
 	err := m.pool.QueryRow(ctx, query, args...).Scan(
 		&user.Version,

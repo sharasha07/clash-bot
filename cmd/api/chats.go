@@ -2,11 +2,10 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
-	"slices"
 
 	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
 func (app *application) showChatsHandler(w http.ResponseWriter, r *http.Request) {
@@ -21,28 +20,16 @@ func (app *application) showChatsHandler(w http.ResponseWriter, r *http.Request)
 		data.Filters
 	}
 
+	v := validator.New()
 	qs := r.URL.Query()
-	input.name = qs.Get("name")
-	if err := app.readFilters(r, &input.Filters); err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
 
-	if input.Filters.Sort == "" {
-		input.Filters.Sort = "-updated_at"
-	}
+	input.name = app.readString(qs, "name", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "-updated_at")
 
-	sortList := []string{"id", "-id", "updated_at", "-updated_at"}
-
-	if !slices.Contains(sortList, input.Filters.Sort) {
-		app.failedValidationResponse(w, map[string]string{
-			"sort": fmt.Sprintf("must be in: %v", sortList),
-		})
-		return
-	}
-
-	if err := app.validate.Struct(input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
+	if input.Filters.Validate(v); !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
 		return
 	}
 
@@ -67,7 +54,7 @@ func (app *application) createChatHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Name string `json:"name" validate:"required,max=20"`
+		Name string `json:"name"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
@@ -75,14 +62,16 @@ func (app *application) createChatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := app.validate.Struct(input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
-		return
-	}
+	v := validator.New()
 
 	chat := data.Chat{
 		UserID: user.ID,
 		Name:   input.Name,
+	}
+
+	if chat.Validate(v); !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
+		return
 	}
 
 	if err := app.models.Chats.Insert(r.Context(), &chat); err != nil {
@@ -153,7 +142,7 @@ func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Name string `json:"name" validate:"required,max=20"`
+		Name string `json:"name"`
 	}
 
 	if err := app.readJSON(w, r, &input); err != nil {
@@ -161,12 +150,13 @@ func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := app.validate.Struct(input); err != nil {
-		app.failedValidationResponse(w, app.fieldErrors(err))
+	chat.Name = input.Name
+
+	v := validator.New()
+	if chat.Validate(v); !v.Valid() {
+		app.failedValidationResponse(w, v.Errors)
 		return
 	}
-
-	chat.Name = input.Name
 
 	if err := app.models.Chats.Update(r.Context(), &chat); err != nil {
 		switch {

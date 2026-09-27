@@ -13,7 +13,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sharasha07/clash-bot/internal/data"
 )
 
 const (
@@ -70,15 +69,6 @@ func TestMain(m *testing.M) {
 		}()
 
 		if err := mig.Up(); err != nil {
-			panic(err)
-		}
-
-		user := data.User{Username: "nika"}
-		if err := user.SetPassword("nika123"); err != nil {
-			panic(err)
-		}
-
-		if err := data.NewModels(pool).Users.Insert(ctx, &user); err != nil {
 			panic(err)
 		}
 
