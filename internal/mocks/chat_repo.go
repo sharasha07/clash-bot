@@ -99,6 +99,21 @@ func (mr *MockChatRepositoryMockRecorder) Insert(ctx, chat any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockChatRepository)(nil).Insert), ctx, chat)
 }
 
+// Touch mocks base method.
+func (m *MockChatRepository) Touch(ctx context.Context, id, user_id int64) (data.Chat, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Touch", ctx, id, user_id)
+	ret0, _ := ret[0].(data.Chat)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Touch indicates an expected call of Touch.
+func (mr *MockChatRepositoryMockRecorder) Touch(ctx, id, user_id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Touch", reflect.TypeOf((*MockChatRepository)(nil).Touch), ctx, id, user_id)
+}
+
 // Update mocks base method.
 func (m *MockChatRepository) Update(ctx context.Context, chat *data.Chat) error {
 	m.ctrl.T.Helper()

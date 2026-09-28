@@ -12,21 +12,25 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 
+	// metrics
 	router.HandlerFunc(http.MethodGet, "/health", app.health)
 	router.Handler(http.MethodGet, "/debug", expvar.Handler())
 
+	// users
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.createUserHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/users/:id/profile-picture", app.uploadProfilePicture)
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id", app.showUserHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/users/:id", app.updateUserHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/users/:id", app.deleteUserHandler)
 
+	// chats
 	router.HandlerFunc(http.MethodGet, "/v1/chats", app.showChatsHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/chats", app.createChatHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/chats/:id", app.showChatHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/chats/:id", app.updateChatHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/chats/:id", app.deleteChatHandler)
 
+	// tokens
 	router.HandlerFunc(http.MethodPost, "/v1/auth/login", app.loginHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/refresh", app.refreshTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/logout", app.logoutHandler)

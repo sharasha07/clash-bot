@@ -20,6 +20,7 @@ type ChatRepository interface {
 	Get(ctx context.Context, id, user_id int64) (Chat, error)
 	Update(ctx context.Context, chat *Chat) error
 	Delete(ctx context.Context, id, user_id int64) error
+	Touch(ctx context.Context, id, user_id int64) (Chat, error)
 }
 
 type Chat struct {
@@ -183,4 +184,33 @@ func (m ChatModel) Delete(ctx context.Context, id, user_id int64) error {
 	}
 
 	return nil
+}
+
+func (m ChatModel) Touch(ctx context.Context, id, user_id int64) (Chat, error) {
+	query := `
+		UPDATE chats
+		SET updated_at = NOW()
+		WHERE id = $1 AND user_id = $2
+		RETURNING id, user_id, name, updated_at, created_at, version`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var chat Chat
+
+	err := m.pool.QueryRow(ctx, query, id, user_id).Scan(
+		&chat.ID, &chat.UserID, &chat.Name,
+		&chat.UpdatedAt, &chat.CreatedAt, &chat.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return Chat{}, ErrNoRecord
+		default:
+			return Chat{}, err
+		}
+	}
+
+	return chat, nil
 }
