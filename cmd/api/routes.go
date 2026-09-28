@@ -30,6 +30,10 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/chats/:id", app.updateChatHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/chats/:id", app.deleteChatHandler)
 
+	// messages
+	router.HandlerFunc(http.MethodGet, "/v1/chats/:id/messages", app.showMessagesHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/chats/:id/messages", app.createMessageHandler)
+
 	// tokens
 	router.HandlerFunc(http.MethodPost, "/v1/auth/login", app.loginHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/auth/refresh", app.refreshTokenHandler)

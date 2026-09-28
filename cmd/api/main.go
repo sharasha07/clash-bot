@@ -61,6 +61,10 @@ type Config struct {
 		PublicURL       string `env:"R2_PUBLIC_URL,required"`
 		S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
 	}
+
+	ClashRoyaleAPIKey string `env:"CLASH_ROYALE_API_KEY,required"`
+
+	GeminiAPIKey string `env:"GEMINI_API_KEY,required"`
 }
 
 func main() {
