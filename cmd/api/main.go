@@ -23,37 +23,31 @@ type application struct {
 }
 
 type Config struct {
-	Port int `env:"PORT,required"`
-
+	Port   int `env:"PORT,required"`
 	Server struct {
 		ReadTimeout  time.Duration `env:"SERVER_READ_TIMEOUT,required"`
 		WriteTimeout time.Duration `env:"SERVER_WRITE_TIMEOUT,required"`
 		IdleTimeout  time.Duration `env:"SERVER_IDLE_TIMEOUT,required"`
 	}
-
 	CORS struct {
 		TrustedOrigins []string `env:"TRUSTED_ORIGINS,required"`
 	}
-
 	Limiter struct {
 		RPS     int  `env:"LIMITER_RPS,required"`
 		Burst   int  `env:"LIMITER_BURST,required"`
 		Enabled bool `env:"LIMITER_ENABLED,required"`
 	}
-
 	DB struct {
 		DSN         string        `env:"DB_DSN,required"`
 		MinConns    int32         `env:"DB_MIN_CONNS,required"`
 		MaxConns    int32         `env:"DB_MAX_CONNS,required"`
 		MaxIdleTime time.Duration `env:"DB_MAX_IDLE_TIME,required"`
 	}
-
 	JWT struct {
 		Secret     string        `env:"JWT_SECRET,required"`
 		AccessTTL  time.Duration `env:"JWT_ACCESS_TTL,required"`
 		RefreshTTL time.Duration `env:"JWT_REFRESH_TTL,required"`
 	}
-
 	R2 struct {
 		AccessKey       string `env:"R2_ACCESS_KEY,required"`
 		SecretAccessKey string `env:"R2_SECRET_ACCESS_KEY,required"`
@@ -61,10 +55,15 @@ type Config struct {
 		PublicURL       string `env:"R2_PUBLIC_URL,required"`
 		S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
 	}
-
-	ClashRoyaleAPIKey string `env:"CLASH_ROYALE_API_KEY,required"`
-
-	GeminiAPIKey string `env:"GEMINI_API_KEY,required"`
+	CR struct {
+		BaseURL  string `env:"CLASH_ROYALE_BASE_URL,required"`
+		APIToken string `env:"CLASH_ROYALE_API_TOKEN,required"`
+	}
+	Gemini struct {
+		BaseURL string `env:"GEMINI_BASE_URL,required"`
+		ApiKey  string `env:"GEMINI_API_KEY,required"`
+		Model   string `env:"GEMINI_MODEL,required"`
+	}
 }
 
 func main() {
