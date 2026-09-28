@@ -33,7 +33,9 @@ type Message struct {
 func (m *Message) Validate(v *validator.Validator) {
 	v.Check(m.Role == RoleUser || m.Role == RoleAssistant, "role", "must be either 'user' or 'assistant'")
 	v.Check(strings.TrimSpace(m.Content) != "", "content", "must not be empty")
-	v.Check(utf8.RuneCountInString(m.Content) <= 4000, "content", "must be a maximum of 4000 characters")
+	if m.Role == RoleUser {
+		v.Check(utf8.RuneCountInString(m.Content) <= 4000, "content", "must be a maximum of 4000 characters")
+	}
 }
 
 type MessageModel struct {
@@ -71,6 +73,7 @@ func (m MessageModel) GetAll(ctx context.Context, chat_id, user_id int64, filter
 			&message.Content,
 			&message.CreatedAt,
 		)
+
 		if err != nil {
 			return nil, err
 		}
