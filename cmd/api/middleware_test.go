@@ -152,7 +152,7 @@ func TestEnableCORS(t *testing.T) {
 			wantHeader: http.Header{
 				"Vary":                         []string{"Origin", "Access-Control-Request-Method"},
 				"Access-Control-Allow-Origin":  []string{"http://localhost:6767"},
-				"Access-Control-Allow-Methods": []string{"OPTIONS, PUT, PATCH, DELETE"},
+				"Access-Control-Allow-Methods": []string{"GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS"},
 				"Access-Control-Allow-Headers": []string{"Authorization, Content-Type"},
 			},
 		},

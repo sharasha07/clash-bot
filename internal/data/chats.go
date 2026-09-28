@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -31,7 +32,7 @@ type Chat struct {
 }
 
 func (c Chat) Validate(v *validator.Validator) {
-	v.Check(c.Name != "", "name", "must not be empty")
+	v.Check(strings.TrimSpace(c.Name) != "", "name", "must not be empty")
 	v.Check(utf8.RuneCountInString(c.Name) <= 10, "name", "must be a maximum of 10")
 }
 

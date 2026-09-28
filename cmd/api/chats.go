@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/validator"
@@ -25,8 +26,9 @@ func (app *application) showChatsHandler(w http.ResponseWriter, r *http.Request)
 
 	input.name = app.readString(qs, "name", "")
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
 	input.Filters.Sort = app.readString(qs, "sort", "-updated_at")
+	input.SortSafeList = []string{"id", "-id", "updated_at", "-updated_at"}
 
 	if input.Filters.Validate(v); !v.Valid() {
 		app.failedValidationResponse(w, v.Errors)
@@ -47,7 +49,6 @@ func (app *application) showChatsHandler(w http.ResponseWriter, r *http.Request)
 
 func (app *application) createChatHandler(w http.ResponseWriter, r *http.Request) {
 	user := contextGetUser(r)
-
 	if user.IsAnonymous() {
 		app.authenticationRequiredResponse(w)
 		return
@@ -66,7 +67,7 @@ func (app *application) createChatHandler(w http.ResponseWriter, r *http.Request
 
 	chat := data.Chat{
 		UserID: user.ID,
-		Name:   input.Name,
+		Name:   strings.TrimSpace(input.Name),
 	}
 
 	if chat.Validate(v); !v.Valid() {
@@ -86,16 +87,15 @@ func (app *application) createChatHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) showChatHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
-	if err != nil || id <= 0 {
-		app.notFoundResponse(w, r)
+	user := contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
 		return
 	}
 
-	user := contextGetUser(r)
-
-	if user.IsAnonymous() {
-		app.authenticationRequiredResponse(w)
+	id, err := app.readIDParam(r)
+	if err != nil || id <= 0 {
+		app.notFoundResponse(w, r)
 		return
 	}
 
@@ -117,16 +117,24 @@ func (app *application) showChatHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request) {
+	user := contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
+		return
+	}
+
 	id, err := app.readIDParam(r)
 	if err != nil || id <= 0 {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	user := contextGetUser(r)
+	var input struct {
+		Name *string `json:"name"`
+	}
 
-	if user.IsAnonymous() {
-		app.authenticationRequiredResponse(w)
+	if err := app.readJSON(w, r, &input); err != nil {
+		app.badRequestResponse(w, err)
 		return
 	}
 
@@ -141,16 +149,9 @@ func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var input struct {
-		Name string `json:"name"`
+	if input.Name != nil {
+		chat.Name = strings.TrimSpace(*input.Name)
 	}
-
-	if err := app.readJSON(w, r, &input); err != nil {
-		app.badRequestResponse(w, err)
-		return
-	}
-
-	chat.Name = input.Name
 
 	v := validator.New()
 	if chat.Validate(v); !v.Valid() {
@@ -175,16 +176,15 @@ func (app *application) updateChatHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) deleteChatHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
-	if err != nil || id <= 0 {
-		app.notFoundResponse(w, r)
+	user := contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w)
 		return
 	}
 
-	user := contextGetUser(r)
-
-	if user.IsAnonymous() {
-		app.authenticationRequiredResponse(w)
+	id, err := app.readIDParam(r)
+	if err != nil || id <= 0 {
+		app.notFoundResponse(w, r)
 		return
 	}
 

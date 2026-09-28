@@ -227,11 +227,7 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if input.Username != nil {
-		user.Username = *input.Username
-	}
-
-	if input.Password != nil {
-		user.Password.Plain = *input.Password
+		user.Username = strings.TrimSpace(*input.Username)
 	}
 
 	if input.GameTag != nil {
@@ -239,9 +235,23 @@ func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	v := validator.New()
-	if user.Validate(v); !v.Valid() {
+	if user.ValidateProfile(v); !v.Valid() {
 		app.failedValidationResponse(w, v.Errors)
 		return
+	}
+
+	if input.Password != nil {
+		user.Password.Plain = *input.Password
+
+		if user.Password.Validate(v); !v.Valid() {
+			app.failedValidationResponse(w, v.Errors)
+			return
+		}
+
+		if err := user.Password.SetHash(*input.Password); err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 
 	err = app.models.Users.Update(r.Context(), user)

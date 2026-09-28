@@ -40,12 +40,13 @@ type User struct {
 }
 
 func (u *User) Validate(v *validator.Validator) {
-	v.Check(u.Username != "", "username", "must not be empty")
-	v.Check(utf8.RuneCountInString(u.Username) <= 15, "username", "must not be more than 15 characters")
+	u.ValidateProfile(v)
+	u.Password.Validate(v)
+}
 
-	v.Check(u.Password.Plain != "", "password", "must not be empty")
-	v.Check(utf8.RuneCountInString(u.Password.Plain) > 8, "password", "must be more than 8 characters")
-	v.Check(utf8.RuneCountInString(u.Password.Plain) < 40, "password", "must not be more than 40 characters")
+func (u *User) ValidateProfile(v *validator.Validator) {
+	v.Check(strings.TrimSpace(u.Username) != "", "username", "must not be empty")
+	v.Check(utf8.RuneCountInString(u.Username) <= 15, "username", "must be a maximum of 15 characters")
 
 	if u.GameTag != nil {
 		v.Check(*u.GameTag != "", "game_tag", "must not be empty")
@@ -60,6 +61,12 @@ func (u *User) IsAnonymous() bool {
 type password struct {
 	Plain string
 	Hash  string
+}
+
+func (p *password) Validate(v *validator.Validator) {
+	v.Check(p.Plain != "", "password", "must not be empty")
+	v.Check(utf8.RuneCountInString(p.Plain) > 8, "password", "must be more than 8 characters")
+	v.Check(utf8.RuneCountInString(p.Plain) <= 40, "password", "must be a maximum of 40 characters")
 }
 
 func (p *password) SetHash(plain string) error {
