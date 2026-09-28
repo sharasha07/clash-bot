@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
@@ -117,4 +118,21 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		return errors.New("body must only contain a single JSON value")
 	}
 	return nil
+}
+
+func (app *application) buildPrompt(history []data.Message) string {
+	var b strings.Builder
+
+	for _, m := range history {
+		switch m.Role {
+		case data.RoleUser:
+			s := fmt.Sprintf("User: %s\n", m.Content)
+			b.WriteString(s)
+		case data.RoleAssistant:
+			s := fmt.Sprintf("Assistant: %s\n", m.Content)
+			b.WriteString(s)
+		}
+	}
+
+	return strings.TrimSpace(b.String())
 }

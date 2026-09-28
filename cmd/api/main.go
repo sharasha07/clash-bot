@@ -16,10 +16,11 @@ import (
 )
 
 type application struct {
-	logger   *slog.Logger
-	cfg      Config
-	models   data.Models
-	s3Client *s3.Client
+	logger    *slog.Logger
+	cfg       Config
+	models    data.Models
+	s3Client  *s3.Client
+	llmClient LLM
 }
 
 type Config struct {
@@ -60,9 +61,10 @@ type Config struct {
 		APIToken string `env:"CLASH_ROYALE_API_TOKEN,required"`
 	}
 	Gemini struct {
-		BaseURL string `env:"GEMINI_BASE_URL,required"`
-		ApiKey  string `env:"GEMINI_API_KEY,required"`
-		Model   string `env:"GEMINI_MODEL,required"`
+		BaseURL string        `env:"GEMINI_BASE_URL,required"`
+		ApiKey  string        `env:"GEMINI_API_KEY,required"`
+		Model   string        `env:"GEMINI_MODEL,required"`
+		Timeout time.Duration `env:"GEMINI_TIMEOUT,required"`
 	}
 }
 
@@ -93,11 +95,18 @@ func main() {
 		HTTPClient:   httpClient,
 	})
 
+	llm, err := newGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout)
+	if err != nil {
+		logger.Error("couldn't create gemini client", "err", err)
+		os.Exit(1)
+	}
+
 	app := &application{
-		logger:   logger,
-		cfg:      cfg,
-		models:   data.NewModels(pool),
-		s3Client: s3Client,
+		logger:    logger,
+		cfg:       cfg,
+		models:    data.NewModels(pool),
+		s3Client:  s3Client,
+		llmClient: llm,
 	}
 
 	if err := app.serve(); err != nil {

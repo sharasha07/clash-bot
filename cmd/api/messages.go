@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/sharasha07/clash-bot/internal/data"
@@ -96,7 +97,54 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := app.writeJSON(w, http.StatusCreated, envelope{"message": message}); err != nil {
+	history, err := app.models.Messages.GetAll(r.Context(), id, user.ID, data.Filters{
+		Page:         1,
+		PageSize:     20,
+		Sort:         "-id",
+		SortSafeList: []string{"id", "-id", "created_at", "-created_at"},
+	})
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	slices.Reverse(history)
+
+	prompt := app.buildPrompt(history)
+	if prompt == "" {
+		prompt = message.Content
+	}
+
+	reply, err := app.llmClient.GenerateReply(r.Context(), prompt)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	reply = strings.TrimSpace(reply)
+	if reply == "" {
+		app.serverErrorResponse(w, r, errors.New("llm returned empty response"))
+		return
+	}
+
+	assistantMessage := data.Message{
+		ChatID:  id,
+		Role:    data.RoleAssistant,
+		Content: reply,
+	}
+
+	if err := app.models.Messages.Insert(r.Context(), &assistantMessage); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if _, err := app.models.Chats.Touch(r.Context(), id, user.ID); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if err := app.writeJSON(w, http.StatusCreated, envelope{"message": message, "reply": assistantMessage}); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
