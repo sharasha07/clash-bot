@@ -14,7 +14,7 @@ run/api:
 build/api:
 	go build -o ./bin/api ./cmd/api
 
-## audit: tidy and vendor dependencies and format, vet and test all code
+## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
 audit:
 	go mod tidy
@@ -22,21 +22,22 @@ audit:
 	go fmt ./...
 	go vet ./...
 	staticcheck ./...
+	go test -race -vet=off ./...
 
-## test/unit: run API unit tests
-.PHONY: test/unit
-test/unit:
-	CGO_ENABLED=1 go test -race ./cmd/api/
+## test: run unit tests
+.PHONY: test
+test:
+	go test -race ./...
 
-## test/integration: run repository integration tests
+## test/integration: run integration tests
 .PHONY: test/integration
 test/integration:
-	dotenvx run -- go test -count=1 -race ./internal/data/
+	dotenvx run -- go test -race -tags=integration ./...
 
-## test/e2e: build the API binary and run backend e2e tests
+## test/e2e: run end-to-end tests
 .PHONY: test/e2e
 test/e2e: build/api
-	dotenvx run -- go test -count=1 ./e2e/
+	dotenvx run -- go test -race -tags=e2e ./e2e
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
