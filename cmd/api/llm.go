@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/sharasha07/clash-bot/internal/clash"
@@ -113,7 +114,11 @@ func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *s
 
 		calls := resp.FunctionCalls()
 		if len(calls) == 0 {
-			return resp.Text(), nil
+			text := strings.TrimSpace(resp.Text())
+			if text == "" {
+				return "", errors.New("llm returned an empty response")
+			}
+			return text, nil
 		}
 
 		contents = append(contents, resp.Candidates[0].Content, l.execute(ctx, calls, gameTag))
