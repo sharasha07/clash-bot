@@ -97,6 +97,10 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	if _, err := app.models.Chats.Touch(r.Context(), id, user.ID); err != nil {
+		app.logger.Error("failed to touch chat", "err", err, "chat_id", id)
+	}
+
 	history, err := app.models.Messages.GetAll(r.Context(), id, user.ID, data.Filters{
 		Page:         1,
 		PageSize:     20,
@@ -113,32 +117,22 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 
 	prompt := app.buildPrompt(history)
 
+	var assistantMessage *data.Message
+
 	reply, err := app.llmClient.generateReply(r.Context(), prompt, user.GameTag)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
+		app.logger.Error("failed to generate reply", "err", err, "chat_id", id)
+	} else {
+		assistantMessage = &data.Message{
+			ChatID:  id,
+			Role:    data.RoleAssistant,
+			Content: reply,
+		}
 
-	reply = strings.TrimSpace(reply)
-	if reply == "" {
-		app.serverErrorResponse(w, r, errors.New("llm returned empty response"))
-		return
-	}
-
-	assistantMessage := data.Message{
-		ChatID:  id,
-		Role:    data.RoleAssistant,
-		Content: reply,
-	}
-
-	if err := app.models.Messages.Insert(r.Context(), &assistantMessage); err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	if _, err := app.models.Chats.Touch(r.Context(), id, user.ID); err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
+		if err := app.models.Messages.Insert(r.Context(), assistantMessage); err != nil {
+			app.logger.Error("failed to store reply", "err", err, "chat_id", id)
+			assistantMessage = nil
+		}
 	}
 
 	if err := app.writeJSON(w, http.StatusCreated, envelope{"message": message, "reply": assistantMessage}); err != nil {
