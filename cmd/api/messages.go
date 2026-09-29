@@ -112,11 +112,8 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 	slices.Reverse(history)
 
 	prompt := app.buildPrompt(history)
-	if prompt == "" {
-		prompt = message.Content
-	}
 
-	reply, err := app.llmClient.GenerateReply(r.Context(), prompt)
+	reply, err := app.llmClient.generateReply(r.Context(), prompt, user.GameTag)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

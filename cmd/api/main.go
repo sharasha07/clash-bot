@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/caarlos0/env/v11"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sharasha07/clash-bot/internal/clash"
 	"github.com/sharasha07/clash-bot/internal/data"
 )
 
@@ -57,8 +58,10 @@ type Config struct {
 		S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
 	}
 	CR struct {
-		BaseURL  string `env:"CLASH_ROYALE_BASE_URL,required"`
-		APIToken string `env:"CLASH_ROYALE_API_TOKEN,required"`
+		BaseURL        string        `env:"CLASH_ROYALE_BASE_URL,required"`
+		APIToken       string        `env:"CLASH_ROYALE_API_TOKEN,required"`
+		Timeout        time.Duration `env:"CLASH_ROYALE_TIMEOUT,required"`
+		MaxResultBytes int           `env:"CLASH_ROYALE_MAX_RESULT_BYTES,required"`
 	}
 	Gemini struct {
 		BaseURL string        `env:"GEMINI_BASE_URL,required"`
@@ -95,7 +98,9 @@ func main() {
 		HTTPClient:   httpClient,
 	})
 
-	llm, err := newGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout)
+	cr := clash.NewClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, cfg.CR.MaxResultBytes)
+
+	llm, err := newGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
 	if err != nil {
 		logger.Error("couldn't create gemini client", "err", err)
 		os.Exit(1)

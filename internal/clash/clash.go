@@ -45,10 +45,14 @@ func NewClient(baseURL, token string, timeout time.Duration, maxResultBytes int)
 }
 
 func (c *Client) GetPlayer(ctx context.Context, tag string) (json.RawMessage, error) {
-	return c.get(ctx, "/players/"+url.PathEscape(tag), nil)
+	tag = strings.ToUpper(strings.TrimSpace(tag))
+
+	return c.get(ctx, "/v1/players/"+url.PathEscape(tag), nil)
 }
 
 func (c *Client) GetPlayerBattleLog(ctx context.Context, tag string, limit int) (json.RawMessage, error) {
+	tag = strings.ToUpper(strings.TrimSpace(tag))
+
 	if limit > 50 {
 		limit = 50
 	}
@@ -56,11 +60,11 @@ func (c *Client) GetPlayerBattleLog(ctx context.Context, tag string, limit int) 
 	query := url.Values{}
 	query.Set("limit", strconv.Itoa(limit))
 
-	return c.get(ctx, "/players/"+url.PathEscape(tag)+"/battlelog", query)
+	return c.get(ctx, "/v1/players/"+url.PathEscape(tag)+"/battlelog", query)
 }
 
 func (c *Client) GetCards(ctx context.Context) (json.RawMessage, error) {
-	return c.get(ctx, "/cards", nil)
+	return c.get(ctx, "/v1/cards", nil)
 }
 
 func (c *Client) get(ctx context.Context, path string, query url.Values) (json.RawMessage, error) {

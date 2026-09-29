@@ -126,11 +126,9 @@ func (app *application) buildPrompt(history []data.Message) string {
 	for _, m := range history {
 		switch m.Role {
 		case data.RoleUser:
-			s := fmt.Sprintf("User: %s\n", m.Content)
-			b.WriteString(s)
+			fmt.Fprintf(&b, "User: %s\n", m.Content)
 		case data.RoleAssistant:
-			s := fmt.Sprintf("Assistant: %s\n", m.Content)
-			b.WriteString(s)
+			fmt.Fprintf(&b, "Assistant: %s\n", m.Content)
 		}
 	}
 
