@@ -25,7 +25,7 @@ var (
 type ClashAPI interface {
 	GetPlayer(ctx context.Context, tag string) (json.RawMessage, error)
 	GetPlayerBattleLog(ctx context.Context, tag string, limit int) (json.RawMessage, error)
-	GetCards(ctx context.Context) (json.RawMessage, error)
+	GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (json.RawMessage, error)
 }
 
 type Client struct {
@@ -63,8 +63,17 @@ func (c *Client) GetPlayerBattleLog(ctx context.Context, tag string, limit int) 
 	return c.get(ctx, "/v1/players/"+url.PathEscape(tag)+"/battlelog", query)
 }
 
-func (c *Client) GetCards(ctx context.Context) (json.RawMessage, error) {
-	return c.get(ctx, "/v1/cards", nil)
+func (c *Client) GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (json.RawMessage, error) {
+	tag = strings.ToUpper(strings.TrimSpace(tag))
+
+	if limit > 50 {
+		limit = 50
+	}
+
+	query := url.Values{}
+	query.Set("limit", strconv.Itoa(limit))
+
+	return c.get(ctx, "/v1/players/"+url.PathEscape(tag)+"/upcomingchests", query)
 }
 
 func (c *Client) get(ctx context.Context, path string, query url.Values) (json.RawMessage, error) {

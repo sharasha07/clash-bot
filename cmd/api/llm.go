@@ -40,11 +40,13 @@ var tools = []*genai.Tool{{
 			},
 		},
 		{
-			Name:        "get_cards",
-			Description: "List every Clash Royale card with its elixir cost and unlock state.",
+			Name:        "get_player_upcoming_chests",
+			Description: "Fetch a Clash Royale player's upcoming chests.",
 			Parameters: &genai.Schema{
-				Type:       genai.TypeObject,
-				Properties: map[string]*genai.Schema{},
+				Type: genai.TypeObject,
+				Properties: map[string]*genai.Schema{
+					"tag": {Type: genai.TypeString, Description: "Player tag"},
+				},
 			},
 		},
 	},
@@ -135,14 +137,14 @@ func (l *geminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, ga
 		}
 
 		switch {
-		case call.Name == "get_cards":
-			raw, err = l.cr.GetCards(ctx)
 		case tag == "":
 			err = errors.New("no game tag available, ask the user for their game tag")
 		case call.Name == "get_player":
 			raw, err = l.cr.GetPlayer(ctx, tag)
 		case call.Name == "get_player_battle_log":
 			raw, err = l.cr.GetPlayerBattleLog(ctx, tag, 10)
+		case call.Name == "get_player_upcoming_chests":
+			raw, err = l.cr.GetPlayersUpcomingChests(ctx, tag, 10)
 		default:
 			raw = json.RawMessage(fmt.Sprintf(`{"error":%q}`, "unknown tool: "+call.Name))
 		}
