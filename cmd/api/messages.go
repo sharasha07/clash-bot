@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/validator"
@@ -61,7 +63,10 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if _, err := app.models.Chats.Get(r.Context(), id, user.ID); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), app.cfg.Server.WriteTimeout-5*time.Second)
+	defer cancel()
+
+	if _, err := app.models.Chats.Get(ctx, id, user.ID); err != nil {
 		switch {
 		case errors.Is(err, data.ErrNoRecord):
 			app.notFoundResponse(w, r)
@@ -92,16 +97,16 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := app.models.Messages.Insert(r.Context(), &message); err != nil {
+	if err := app.models.Messages.Insert(ctx, &message); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	if _, err := app.models.Chats.Touch(r.Context(), id, user.ID); err != nil {
+	if _, err := app.models.Chats.Touch(ctx, id, user.ID); err != nil {
 		app.logger.Error("failed to touch chat", "err", err, "chat_id", id)
 	}
 
-	history, err := app.models.Messages.GetAll(r.Context(), id, user.ID, data.Filters{
+	history, err := app.models.Messages.GetAll(ctx, id, user.ID, data.Filters{
 		Page:         1,
 		PageSize:     20,
 		Sort:         "-id",
@@ -119,7 +124,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 
 	var assistantMessage *data.Message
 
-	reply, err := app.llmClient.generateReply(r.Context(), prompt, user.GameTag)
+	reply, err := app.llmClient.generateReply(ctx, prompt, user.GameTag)
 	if err != nil {
 		app.logger.Error("failed to generate reply", "err", err, "chat_id", id)
 	} else {
@@ -129,7 +134,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 			Content: reply,
 		}
 
-		if err := app.models.Messages.Insert(r.Context(), assistantMessage); err != nil {
+		if err := app.models.Messages.Insert(ctx, assistantMessage); err != nil {
 			app.logger.Error("failed to store reply", "err", err, "chat_id", id)
 			assistantMessage = nil
 		}

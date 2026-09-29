@@ -77,9 +77,6 @@ func (c *Client) GetPlayersUpcomingChests(ctx context.Context, tag string, limit
 }
 
 func (c *Client) get(ctx context.Context, path string, query url.Values) (json.RawMessage, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	endpoint := c.baseURL + path
 	if len(query) > 0 {
 		endpoint += "?" + query.Encode()

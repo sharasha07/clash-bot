@@ -92,9 +92,6 @@ func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *s
 		tag = *gameTag
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
-	defer cancel()
-
 	for range maxToolRounds {
 		resp, err := l.models.GenerateContent(ctx, l.model, contents,
 			&genai.GenerateContentConfig{
