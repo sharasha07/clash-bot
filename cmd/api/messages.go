@@ -25,6 +25,16 @@ func (app *application) showMessagesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if _, err := app.models.Chats.Get(r.Context(), id, user.ID); err != nil {
+		switch {
+		case errors.Is(err, data.ErrNoRecord):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
 	v := validator.New()
 	qs := r.URL.Query()
 
