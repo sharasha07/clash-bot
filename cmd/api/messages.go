@@ -74,7 +74,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	if _, err := app.models.Chats.Get(ctx, id, user.ID); err != nil {
