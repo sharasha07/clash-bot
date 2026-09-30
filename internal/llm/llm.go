@@ -1,4 +1,4 @@
-package main
+package llm
 
 import (
 	"context"
@@ -53,18 +53,18 @@ var tools = []*genai.Tool{{
 	},
 }}
 
-//go:generate mockgen -source=llm.go -destination=../../internal/mocks/llm.go -package=mocks
+//go:generate mockgen -source=llm.go -destination=../mocks/llm.go -package=mocks
 type LLM interface {
-	generateReply(ctx context.Context, prompt string, gameTag *string) (string, error)
+	GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error)
 }
 
-type geminiLLM struct {
-	models   *genai.Models
-	model    string
-	crClient clash.ClashClient
+type GeminiLLM struct {
+	Models   *genai.Models
+	Model    string
+	CrClient clash.ClashClient
 }
 
-func newGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient clash.ClashClient) (*geminiLLM, error) {
+func NewGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient clash.ClashClient) (*GeminiLLM, error) {
 	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
@@ -81,10 +81,10 @@ func newGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient
 		return nil, err
 	}
 
-	return &geminiLLM{models: client.Models, model: model, crClient: crClient}, nil
+	return &GeminiLLM{Models: client.Models, Model: model, CrClient: crClient}, nil
 }
 
-func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
+func (l *GeminiLLM) GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
 	contents := genai.Text(prompt)
 
 	tag := "none"
@@ -93,7 +93,7 @@ func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *s
 	}
 
 	for range maxToolRounds {
-		resp, err := l.models.GenerateContent(ctx, l.model, contents,
+		resp, err := l.Models.GenerateContent(ctx, l.Model, contents,
 			&genai.GenerateContentConfig{
 				Tools: tools,
 				ToolConfig: &genai.ToolConfig{
@@ -124,7 +124,7 @@ func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *s
 	return "", errors.New("llm exceeded maximum tool call rounds")
 }
 
-func (l *geminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, gameTag *string) *genai.Content {
+func (l *GeminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, gameTag *string) *genai.Content {
 	parts := make([]*genai.Part, 0, len(calls))
 
 	for _, call := range calls {
@@ -140,11 +140,11 @@ func (l *geminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, ga
 
 		switch call.Name {
 		case "get_player":
-			result, err = l.crClient.GetPlayer(ctx, tag)
+			result, err = l.CrClient.GetPlayer(ctx, tag)
 		case "get_player_battle_log":
-			result, err = l.crClient.GetPlayerBattleLog(ctx, tag, 10)
+			result, err = l.CrClient.GetPlayerBattleLog(ctx, tag, 10)
 		case "get_player_upcoming_chests":
-			result, err = l.crClient.GetPlayersUpcomingChests(ctx, tag, 10)
+			result, err = l.CrClient.GetPlayersUpcomingChests(ctx, tag, 10)
 		default:
 			err = errors.New("unknown tool")
 		}

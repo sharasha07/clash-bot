@@ -14,14 +14,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sharasha07/clash-bot/internal/clash"
 	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/llm"
+	"github.com/sharasha07/clash-bot/internal/objectstorage"
 )
 
 type application struct {
 	logger    *slog.Logger
 	cfg       Config
 	models    data.Models
-	s3Client  *s3.Client
-	llmClient LLM
+	s3Client  objectstorage.S3ObjectStorage
+	llmClient llm.LLM
 }
 
 type Config struct {
@@ -100,7 +102,7 @@ func main() {
 
 	cr := clash.NewClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, cfg.CR.MaxResultBytes)
 
-	llm, err := newGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
+	llm, err := llm.NewGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
 	if err != nil {
 		logger.Error("couldn't create gemini client", "err", err)
 		os.Exit(1)

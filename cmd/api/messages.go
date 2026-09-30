@@ -148,7 +148,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 	// generate LLM reply
 	var assistantMessage *data.Message
 
-	reply, err := app.llmClient.generateReply(ctx, prompt, user.GameTag)
+	reply, err := app.llmClient.GenerateReply(ctx, prompt, user.GameTag)
 	if err != nil {
 		app.logger.Error("failed to generate reply", "err", err, "chat_id", id)
 	} else {

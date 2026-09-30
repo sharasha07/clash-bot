@@ -10,9 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -125,8 +123,6 @@ func (app *application) uploadProfilePicture(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
-	endpoint += "?v=" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	_, err = app.s3Client.PutObject(r.Context(),
 		&s3.PutObjectInput{
@@ -302,6 +298,17 @@ func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request
 			app.serverErrorResponse(w, r, err)
 		}
 		return
+	}
+
+	key := fmt.Sprintf("users/%d/profile_picture", id)
+
+	_, delErr := app.s3Client.DeleteObject(r.Context(), &s3.DeleteObjectInput{
+		Bucket: aws.String(app.cfg.R2.Bucket),
+		Key:    aws.String(key),
+	})
+
+	if delErr != nil {
+		app.logger.Error("failed to remove orphaned profile picture", "err", delErr)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
