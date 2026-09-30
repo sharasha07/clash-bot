@@ -120,7 +120,7 @@ func (app *application) uploadProfilePicture(w http.ResponseWriter, r *http.Requ
 
 	key := fmt.Sprintf("users/%d/profile_picture", id)
 
-	endpoint, err := url.JoinPath(app.cfg.R2.PublicURL, key)
+	endpoint, err := url.JoinPath(app.cfg.R2.PublicURL, app.cfg.R2.Bucket, key)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

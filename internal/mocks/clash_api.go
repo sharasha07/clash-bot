@@ -11,77 +11,76 @@ package mocks
 
 import (
 	context "context"
-	json "encoding/json"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockClashAPI is a mock of ClashAPI interface.
-type MockClashAPI struct {
+// MockClashClient is a mock of ClashClient interface.
+type MockClashClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockClashAPIMockRecorder
+	recorder *MockClashClientMockRecorder
 	isgomock struct{}
 }
 
-// MockClashAPIMockRecorder is the mock recorder for MockClashAPI.
-type MockClashAPIMockRecorder struct {
-	mock *MockClashAPI
+// MockClashClientMockRecorder is the mock recorder for MockClashClient.
+type MockClashClientMockRecorder struct {
+	mock *MockClashClient
 }
 
-// NewMockClashAPI creates a new mock instance.
-func NewMockClashAPI(ctrl *gomock.Controller) *MockClashAPI {
-	mock := &MockClashAPI{ctrl: ctrl}
-	mock.recorder = &MockClashAPIMockRecorder{mock}
+// NewMockClashClient creates a new mock instance.
+func NewMockClashClient(ctrl *gomock.Controller) *MockClashClient {
+	mock := &MockClashClient{ctrl: ctrl}
+	mock.recorder = &MockClashClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockClashAPI) EXPECT() *MockClashAPIMockRecorder {
+func (m *MockClashClient) EXPECT() *MockClashClientMockRecorder {
 	return m.recorder
 }
 
-// GetCards mocks base method.
-func (m *MockClashAPI) GetCards(ctx context.Context) (json.RawMessage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCards", ctx)
-	ret0, _ := ret[0].(json.RawMessage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCards indicates an expected call of GetCards.
-func (mr *MockClashAPIMockRecorder) GetCards(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCards", reflect.TypeOf((*MockClashAPI)(nil).GetCards), ctx)
-}
-
 // GetPlayer mocks base method.
-func (m *MockClashAPI) GetPlayer(ctx context.Context, tag string) (json.RawMessage, error) {
+func (m *MockClashClient) GetPlayer(ctx context.Context, tag string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPlayer", ctx, tag)
-	ret0, _ := ret[0].(json.RawMessage)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPlayer indicates an expected call of GetPlayer.
-func (mr *MockClashAPIMockRecorder) GetPlayer(ctx, tag any) *gomock.Call {
+func (mr *MockClashClientMockRecorder) GetPlayer(ctx, tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlayer", reflect.TypeOf((*MockClashAPI)(nil).GetPlayer), ctx, tag)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlayer", reflect.TypeOf((*MockClashClient)(nil).GetPlayer), ctx, tag)
 }
 
 // GetPlayerBattleLog mocks base method.
-func (m *MockClashAPI) GetPlayerBattleLog(ctx context.Context, tag string, limit int) (json.RawMessage, error) {
+func (m *MockClashClient) GetPlayerBattleLog(ctx context.Context, tag string, limit int) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPlayerBattleLog", ctx, tag, limit)
-	ret0, _ := ret[0].(json.RawMessage)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPlayerBattleLog indicates an expected call of GetPlayerBattleLog.
-func (mr *MockClashAPIMockRecorder) GetPlayerBattleLog(ctx, tag, limit any) *gomock.Call {
+func (mr *MockClashClientMockRecorder) GetPlayerBattleLog(ctx, tag, limit any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlayerBattleLog", reflect.TypeOf((*MockClashAPI)(nil).GetPlayerBattleLog), ctx, tag, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlayerBattleLog", reflect.TypeOf((*MockClashClient)(nil).GetPlayerBattleLog), ctx, tag, limit)
+}
+
+// GetPlayersUpcomingChests mocks base method.
+func (m *MockClashClient) GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlayersUpcomingChests", ctx, tag, limit)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPlayersUpcomingChests indicates an expected call of GetPlayersUpcomingChests.
+func (mr *MockClashClientMockRecorder) GetPlayersUpcomingChests(ctx, tag, limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlayersUpcomingChests", reflect.TypeOf((*MockClashClient)(nil).GetPlayersUpcomingChests), ctx, tag, limit)
 }

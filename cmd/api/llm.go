@@ -16,7 +16,7 @@ const maxToolRounds = 2
 
 const systemInstruction = `You are a Clash Royale assistant. The tools need a player tag. Use the tag
 the user gives in their message if they gave one, otherwise the tag saved on their profile: %s. If that is none,
-ask the user for their game tag and do not call any player tool.`
+ask the user for their game tag and do not call any tool.`
 
 var tools = []*genai.Tool{{
 	FunctionDeclarations: []*genai.FunctionDeclaration{
@@ -59,12 +59,12 @@ type LLM interface {
 }
 
 type geminiLLM struct {
-	models *genai.Models
-	model  string
-	cr     clash.ClashAPI
+	models   *genai.Models
+	model    string
+	crClient clash.ClashClient
 }
 
-func newGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, cr clash.ClashAPI) (*geminiLLM, error) {
+func newGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient clash.ClashClient) (*geminiLLM, error) {
 	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
@@ -81,7 +81,7 @@ func newGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, cr clash
 		return nil, err
 	}
 
-	return &geminiLLM{models: client.Models, model: model, cr: cr}, nil
+	return &geminiLLM{models: client.Models, model: model, crClient: crClient}, nil
 }
 
 func (l *geminiLLM) generateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
@@ -129,8 +129,8 @@ func (l *geminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, ga
 
 	for _, call := range calls {
 		var (
-			raw json.RawMessage
-			err error
+			result string
+			err    error
 		)
 
 		tag, _ := call.Args["tag"].(string)
@@ -138,39 +138,37 @@ func (l *geminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, ga
 			tag = *gameTag
 		}
 
-		switch {
-		case tag == "":
-			err = errors.New("no game tag available, ask the user for their game tag")
-		case call.Name == "get_player":
-			raw, err = l.cr.GetPlayer(ctx, tag)
-		case call.Name == "get_player_battle_log":
-			raw, err = l.cr.GetPlayerBattleLog(ctx, tag, 10)
-		case call.Name == "get_player_upcoming_chests":
-			raw, err = l.cr.GetPlayersUpcomingChests(ctx, tag, 10)
+		switch call.Name {
+		case "get_player":
+			result, err = l.crClient.GetPlayer(ctx, tag)
+		case "get_player_battle_log":
+			result, err = l.crClient.GetPlayerBattleLog(ctx, tag, 10)
+		case "get_player_upcoming_chests":
+			result, err = l.crClient.GetPlayersUpcomingChests(ctx, tag, 10)
 		default:
-			raw = json.RawMessage(fmt.Sprintf(`{"error":%q}`, "unknown tool: "+call.Name))
+			err = errors.New("unknown tool")
 		}
 
-		result := map[string]any{}
+		response := map[string]any{}
 
 		switch {
 		case err != nil:
-			result["error"] = err.Error()
+			response["error"] = err.Error()
 		default:
 			var v any
-			if err := json.Unmarshal(raw, &v); err != nil {
-				result["error"] = "unreadable tool response: " + err.Error()
+			if err := json.Unmarshal([]byte(result), &v); err != nil {
+				response["error"] = "unreadable tool response: " + err.Error()
 			} else if obj, ok := v.(map[string]any); ok {
-				result = obj
+				response = obj
 			} else {
-				result["items"] = v
+				response["items"] = v
 			}
 		}
 
 		parts = append(parts, &genai.Part{FunctionResponse: &genai.FunctionResponse{
 			ID:       call.ID,
 			Name:     call.Name,
-			Response: result,
+			Response: response,
 		}})
 	}
 

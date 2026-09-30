@@ -40,17 +40,17 @@ func (m *MockLLM) EXPECT() *MockLLMMockRecorder {
 	return m.recorder
 }
 
-// GenerateReply mocks base method.
-func (m *MockLLM) GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
+// generateReply mocks base method.
+func (m *MockLLM) generateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateReply", ctx, prompt, gameTag)
+	ret := m.ctrl.Call(m, "generateReply", ctx, prompt, gameTag)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GenerateReply indicates an expected call of GenerateReply.
-func (mr *MockLLMMockRecorder) GenerateReply(ctx, prompt, gameTag any) *gomock.Call {
+// generateReply indicates an expected call of generateReply.
+func (mr *MockLLMMockRecorder) generateReply(ctx, prompt, gameTag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateReply", reflect.TypeOf((*MockLLM)(nil).GenerateReply), ctx, prompt, gameTag)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "generateReply", reflect.TypeOf((*MockLLM)(nil).generateReply), ctx, prompt, gameTag)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -73,7 +74,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), app.cfg.Server.WriteTimeout-5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	if _, err := app.models.Chats.Get(ctx, id, user.ID); err != nil {
@@ -86,6 +87,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// handle input
 	var input struct {
 		Content string `json:"content"`
 	}
@@ -124,14 +126,26 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 	})
 
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
+		app.logger.Error("failed to fetch recent messages", "err", err)
 	}
 
 	slices.Reverse(history)
 
-	prompt := app.buildPrompt(history)
+	// build prompt with latest messages
+	var b strings.Builder
 
+	for _, m := range history {
+		switch m.Role {
+		case data.RoleUser:
+			fmt.Fprintf(&b, "User: %s\n", m.Content)
+		case data.RoleAssistant:
+			fmt.Fprintf(&b, "Assistant: %s\n", m.Content)
+		}
+	}
+
+	prompt := strings.TrimSpace(b.String())
+
+	// generate LLM reply
 	var assistantMessage *data.Message
 
 	reply, err := app.llmClient.generateReply(ctx, prompt, user.GameTag)
