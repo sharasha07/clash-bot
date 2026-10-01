@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/sharasha07/clash-bot/internal/validator"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReadIDParam(t *testing.T) {
@@ -136,6 +140,99 @@ func TestReadInt(t *testing.T) {
 
 			if tt.wantMessage {
 				assert.Equal(t, "must be an integer value", v.Errors[tt.key])
+			}
+		})
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	app := newTestApplication(t)
+
+	tests := []struct {
+		name      string
+		status    int
+		env       envelope
+		wantErr   bool
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:    "marshal error",
+			status:  http.StatusMethodNotAllowed,
+			env:     envelope{"channel": make(chan int)},
+			wantErr: true,
+			checkBody: func(t *testing.T, body io.Reader) {
+				data, err := io.ReadAll(body)
+				require.NoError(t, err)
+
+				assert.Empty(t, data)
+			},
+		},
+		{
+			name:    "send error message",
+			status:  http.StatusMethodNotAllowed,
+			env:     envelope{"error": "method not allowed"},
+			wantErr: false,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "method not allowed", result.Error)
+			},
+		},
+		{
+			name:   "send user",
+			status: http.StatusCreated,
+			env: envelope{"user": struct {
+				ID       int    `json:"id"`
+				Username string `json:"username"`
+			}{
+				ID:       10,
+				Username: "saba",
+			}},
+			wantErr: false,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					User struct {
+						ID       int    `json:"id"`
+						Username string `json:"username"`
+					} `json:"user"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 10, result.User.ID)
+				assert.Equal(t, "saba", result.User.Username)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+
+			gotErr := app.writeJSON(rr, tt.status, tt.env)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			if tt.wantErr {
+				require.Error(t, gotErr)
+
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+			} else {
+				require.NoError(t, gotErr)
+
+				assert.Equal(t, tt.status, resp.StatusCode)
+				assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+			}
+
+			if tt.checkBody != nil {
+				tt.checkBody(t, resp.Body)
 			}
 		})
 	}
