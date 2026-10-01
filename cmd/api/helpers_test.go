@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -233,6 +234,84 @@ func TestWriteJSON(t *testing.T) {
 
 			if tt.checkBody != nil {
 				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
+
+func TestReadJSON(t *testing.T) {
+	app := newTestApplication(t)
+
+	type dst struct {
+		Example1 int    `json:"example1"`
+		Example2 string `json:"example2"`
+	}
+
+	tests := []struct {
+		name        string
+		input       string
+		wantMessage string
+	}{
+		{
+			name:        "empty body error",
+			input:       "",
+			wantMessage: "body must not be empty",
+		},
+		{
+			name:        "badly-formed JSON error",
+			input:       `{"example1: 5, "example2": "saba"}`,
+			wantMessage: "body contains badly-formed JSON (at character 17)",
+		},
+		{
+			name:        "badly-formed JSON (unexpected EOF) error",
+			input:       `{"example1": 5, "example2`,
+			wantMessage: "body contains badly-formed JSON",
+		},
+		{
+			name:        "unmarshal type error",
+			input:       `{"example1": "5", "example2": "saba"}`,
+			wantMessage: `body contains incorrect JSON type for field "example1"`,
+		},
+		{
+			name:        "large body error",
+			input:       `{"example2": "` + strings.Repeat("s", 1<<20),
+			wantMessage: "body must not be larger than 1048576 bytes",
+		},
+		{
+			name:        "unknown field error",
+			input:       `{"exam1": 5, "example2": "saba"}`,
+			wantMessage: `body contains unknown key "exam1"`,
+		},
+		{
+			name:        "doble json error",
+			input:       `{"example1": 5, "example2": "saba"} {"example1": 5, "example2": "saba"}`,
+			wantMessage: `body must only contain a single JSON value`,
+		},
+		{
+			name:        "no error",
+			input:       `{"example1": 5, "example2": "saba"}`,
+			wantMessage: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(tt.input))
+
+			var result dst
+
+			gotErr := app.readJSON(rr, req, &result)
+
+			if tt.wantMessage == "" {
+				require.NoError(t, gotErr)
+
+				assert.Equal(t, result.Example1, 5)
+				assert.Equal(t, result.Example2, "saba")
+			} else {
+				require.Error(t, gotErr)
+
+				assert.EqualError(t, gotErr, tt.wantMessage)
 			}
 		})
 	}
