@@ -1,6 +1,7 @@
 package main
 
 import (
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -72,6 +73,81 @@ func TestRecoverPanic(t *testing.T) {
 			app.recoverPanic(tt.next).ServeHTTP(rr, req)
 
 			assert.Equal(t, tt.wantStatus, rr.Result().StatusCode)
+			assert.Subset(t, rr.Result().Header, tt.wantHeaders)
+		})
+	}
+}
+
+func TestEnableCORS(t *testing.T) {
+	app := newTestApplication(t)
+	app.cfg.CORS.TrustedOrigins = []string{"https://example.com"}
+
+	tests := []struct {
+		name        string
+		method      string
+		headers     http.Header
+		wantHeaders http.Header
+	}{
+		{
+			name:    "no origin",
+			method:  http.MethodGet,
+			headers: nil,
+			wantHeaders: http.Header{
+				"Vary": []string{"Origin", "Access-Control-Request-Method"},
+			},
+		},
+		{
+			name:    "untrusted origin",
+			method:  http.MethodGet,
+			headers: http.Header{"Origin": []string{"https://notexample.com"}},
+			wantHeaders: http.Header{
+				"Vary": []string{"Origin", "Access-Control-Request-Method"},
+			},
+		},
+		{
+			name:    "trusted origin",
+			method:  http.MethodGet,
+			headers: http.Header{"Origin": []string{"https://example.com"}},
+			wantHeaders: http.Header{
+				"Vary":                        []string{"Origin", "Access-Control-Request-Method"},
+				"Access-Control-Allow-Origin": []string{"https://example.com"},
+			},
+		},
+		{
+			name:   "trusted pre-flight",
+			method: http.MethodOptions,
+			headers: http.Header{
+				"Origin":                        []string{"https://example.com"},
+				"Access-Control-Request-Method": []string{"blabla"},
+			},
+			wantHeaders: http.Header{
+				"Vary":                         []string{"Origin", "Access-Control-Request-Method"},
+				"Access-Control-Allow-Origin":  []string{"https://example.com"},
+				"Access-Control-Allow-Methods": []string{"GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS"},
+				"Access-Control-Allow-Headers": []string{"Authorization, Content-Type"},
+			},
+		},
+		{
+			name:   "trusted pre-flight without request-method header",
+			method: http.MethodOptions,
+			headers: http.Header{
+				"Origin": []string{"https://example.com"},
+			},
+			wantHeaders: http.Header{
+				"Vary":                        []string{"Origin", "Access-Control-Request-Method"},
+				"Access-Control-Allow-Origin": []string{"https://example.com"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(tt.method, "/", nil)
+			maps.Copy(req.Header, tt.headers)
+
+			app.enableCORS(http.HandlerFunc(app.health)).ServeHTTP(rr, req)
+
 			assert.Subset(t, rr.Result().Header, tt.wantHeaders)
 		})
 	}
