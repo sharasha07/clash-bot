@@ -152,3 +152,68 @@ func TestEnableCORS(t *testing.T) {
 		})
 	}
 }
+
+func TestRateLimit(t *testing.T) {
+	app := newTestApplication(t)
+	app.cfg.Limiter.RPS = 2
+	app.cfg.Limiter.Burst = 4
+
+	tests := []struct {
+		name    string
+		enabled bool
+		exceed  bool
+	}{
+		{
+			name:    "not enabled, not exceeded",
+			enabled: false,
+			exceed:  false,
+		},
+		{
+			name:    "not enabled, exceeded",
+			enabled: false,
+			exceed:  true,
+		},
+		{
+			name:    "enabled, not exceeded",
+			enabled: true,
+			exceed:  false,
+		},
+		{
+			name:    "enabled, exceeded",
+			enabled: true,
+			exceed:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app.cfg.Limiter.Enabled = tt.enabled
+
+			handler := app.rateLimit(http.HandlerFunc(app.health))
+
+			if tt.exceed {
+				for i := range app.cfg.Limiter.Burst + 1 {
+					rr := httptest.NewRecorder()
+					req := httptest.NewRequest(http.MethodGet, "/health", nil)
+					req.RemoteAddr = "192.0.2.1:1234"
+
+					handler.ServeHTTP(rr, req)
+
+					if tt.enabled && i == app.cfg.Limiter.Burst {
+						assert.Equal(t, http.StatusTooManyRequests, rr.Result().StatusCode)
+					} else {
+						assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
+					}
+				}
+			} else {
+				rr := httptest.NewRecorder()
+				req := httptest.NewRequest(http.MethodGet, "/health", nil)
+				req.RemoteAddr = "192.0.2.1:1234"
+
+				app.rateLimit(http.HandlerFunc(app.health)).ServeHTTP(rr, req)
+
+				assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
+			}
+		})
+	}
+}
