@@ -1,12 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/sharasha07/clash-bot/internal/data"
+	"github.com/sharasha07/clash-bot/internal/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestMetrics(t *testing.T) {
@@ -213,6 +219,83 @@ func TestRateLimit(t *testing.T) {
 				app.rateLimit(http.HandlerFunc(app.health)).ServeHTTP(rr, req)
 
 				assert.Equal(t, http.StatusOK, rr.Result().StatusCode)
+			}
+		})
+	}
+}
+
+func TestAuthenticate(t *testing.T) {
+	app := newTestApplication(t)
+	app.cfg.JWT.Secret = "secret_token"
+
+	token1, err := data.NewAccessToken(1, app.cfg.JWT.Secret, 15*time.Minute)
+	require.NoError(t, err)
+	token2, err := data.NewAccessToken(2, app.cfg.JWT.Secret, 15*time.Minute)
+	require.NoError(t, err)
+
+	app.models.Users.(*mocks.MockUserRepository).EXPECT().GetByID(gomock.Any(), int64(1)).
+		Return(data.User{ID: 1}, nil)
+	app.models.Users.(*mocks.MockUserRepository).EXPECT().GetByID(gomock.Any(), int64(2)).
+		Return(data.User{}, data.ErrNoRecord)
+
+	tests := []struct {
+		name     string
+		header   http.Header
+		wantCode int
+		wantUser *data.User
+	}{
+		{
+			name:     "no authorization header",
+			header:   nil,
+			wantCode: http.StatusOK,
+			wantUser: data.AnonymousUser,
+		},
+		{
+			name:     "invalid authorization header",
+			header:   http.Header{"Authorization": []string{fmt.Sprintf("Bearer is %s", token1)}},
+			wantCode: http.StatusUnauthorized,
+			wantUser: nil,
+		},
+		{
+			name:     "invalid token",
+			header:   http.Header{"Authorization": []string{fmt.Sprintf("Bearer %s", token1+"ba")}},
+			wantCode: http.StatusUnauthorized,
+			wantUser: nil,
+		},
+		{
+			name:     "no user with that id",
+			header:   http.Header{"Authorization": []string{fmt.Sprintf("Bearer %s", token2)}},
+			wantCode: http.StatusUnauthorized,
+			wantUser: nil,
+		},
+		{
+			name:     "user with id 1",
+			header:   http.Header{"Authorization": []string{fmt.Sprintf("Bearer %s", token1)}},
+			wantCode: http.StatusOK,
+			wantUser: &data.User{ID: 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+			maps.Copy(req.Header, tt.header)
+
+			var wantReq *http.Request
+			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				wantReq = r
+
+				w.WriteHeader(http.StatusOK)
+			})
+
+			app.authenticate(next).ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantCode, rr.Result().StatusCode)
+
+			if tt.wantUser != nil {
+				assert.Equal(t, tt.wantUser, contextGetUser(wantReq))
 			}
 		})
 	}
