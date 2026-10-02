@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"net/http"
@@ -233,10 +234,14 @@ func TestAuthenticate(t *testing.T) {
 	token2, err := data.NewAccessToken(2, app.cfg.JWT.Secret, 15*time.Minute)
 	require.NoError(t, err)
 
-	app.models.Users.(*mocks.MockUserRepository).EXPECT().GetByID(gomock.Any(), int64(1)).
-		Return(data.User{ID: 1}, nil)
-	app.models.Users.(*mocks.MockUserRepository).EXPECT().GetByID(gomock.Any(), int64(2)).
-		Return(data.User{}, data.ErrNoRecord)
+	app.models.Users.(*mocks.MockUserRepository).EXPECT().GetByID(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, id int64) (data.User, error) {
+			if id == 1 {
+				return data.User{ID: 1}, nil
+			}
+
+			return data.User{}, data.ErrNoRecord
+		}).Times(2)
 
 	tests := []struct {
 		name     string
@@ -281,7 +286,7 @@ func TestAuthenticate(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-			maps.Copy(req.Header, tt.header)
+			req.Header = tt.header
 
 			var wantReq *http.Request
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
