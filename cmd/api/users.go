@@ -60,7 +60,7 @@ func (app *application) createUserHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) uploadProfilePicture(w http.ResponseWriter, r *http.Request) {
+func (app *application) uploadProfilePictureHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil || id <= 0 {
 		app.notFoundResponse(w, r)
