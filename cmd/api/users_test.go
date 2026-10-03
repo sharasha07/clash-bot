@@ -333,3 +333,301 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestShowUserHandler(t *testing.T) {
+	app := newTestApplication(t)
+
+	tests := []struct {
+		name      string
+		userID    int64
+		wantCode  int
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:     "anonymous user",
+			userID:   0,
+			wantCode: http.StatusUnauthorized,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "authentication required to access this endpoint", result.Error)
+			},
+		},
+		{
+			name:     "unauthorized user",
+			userID:   2,
+			wantCode: http.StatusForbidden,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "user is not permitted to access this resource", result.Error)
+			},
+		},
+		{
+			name:     "success",
+			userID:   1,
+			wantCode: http.StatusOK,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					User data.User `json:"user"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, int64(1), result.User.ID)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/v1/users/1", nil)
+
+			params := httprouter.Params{{Key: "id", Value: "1"}}
+			req = req.WithContext(context.WithValue(req.Context(), httprouter.ParamsKey, params))
+
+			if tt.userID != 0 {
+				req = contextSetUser(req, &data.User{ID: tt.userID})
+			} else {
+				req = contextSetUser(req, data.AnonymousUser)
+			}
+
+			app.showUserHandler(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+			assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+			if tt.checkBody != nil {
+				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
+
+func TestUpdateUserHandler(t *testing.T) {
+	app := newTestApplication(t)
+
+	app.models.Users.(*mocks.MockUserRepository).EXPECT().Update(gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	tests := []struct {
+		name      string
+		userID    int64
+		input     string
+		wantCode  int
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:     "anonymous user",
+			userID:   0,
+			input:    `{"username": "luka"}`,
+			wantCode: http.StatusUnauthorized,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "authentication required to access this endpoint", result.Error)
+			},
+		},
+		{
+			name:     "unauthorized user",
+			userID:   2,
+			input:    `{"username": "luka"}`,
+			wantCode: http.StatusForbidden,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "user is not permitted to access this resource", result.Error)
+			},
+		},
+		{
+			name:     "empty username",
+			userID:   1,
+			input:    `{"username": "", "password": "saba123"}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must not be empty", result.Error["username"])
+			},
+		},
+		{
+			name:     "big username",
+			userID:   1,
+			input:    `{"username": "shabashabashaba1", "password": ""}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must be a maximum of 15 characters", result.Error["username"])
+			},
+		},
+		{
+			name:     "whitespace username",
+			userID:   1,
+			input:    fmt.Sprintf(`{"username": "    ", "password": "%s"}`, strings.Repeat("a", 41)),
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must not be empty", result.Error["username"])
+			},
+		},
+		{
+			name:     "small password",
+			userID:   1,
+			input:    `{"password": "saba123"}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must be more than 8 characters", result.Error["password"])
+			},
+		},
+		{
+			name:     "big password",
+			userID:   1,
+			input:    fmt.Sprintf(`{"password": "%s"}`, strings.Repeat("a", 41)),
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must be a maximum of 40 characters", result.Error["password"])
+			},
+		},
+		{
+			name:     "game tag without hash",
+			userID:   1,
+			input:    `{"game_tag": "2UVOPRR9R"}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must start with #", result.Error["game_tag"])
+			},
+		},
+		{
+			name:     "empty game tag",
+			userID:   1,
+			input:    `{"game_tag": ""}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must not be empty", result.Error["game_tag"])
+			},
+		},
+		{
+			name:     "success",
+			userID:   1,
+			input:    `{"username": "shaba", "game_tag": "#2UVOPRR9R"}`,
+			wantCode: http.StatusOK,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					User data.User `json:"user"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, int64(1), result.User.ID)
+				assert.Equal(t, "shaba", result.User.Username)
+				assert.Equal(t, "#2UVOPRR9R", *result.User.GameTag)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPut, "/v1/users/1", strings.NewReader(tt.input))
+
+			params := httprouter.Params{{Key: "id", Value: "1"}}
+			req = req.WithContext(context.WithValue(req.Context(), httprouter.ParamsKey, params))
+
+			if tt.userID != 0 {
+				req = contextSetUser(req, &data.User{ID: tt.userID, Username: "luka"})
+			} else {
+				req = contextSetUser(req, data.AnonymousUser)
+			}
+
+			app.updateUserHandler(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+			assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+			if tt.checkBody != nil {
+				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
