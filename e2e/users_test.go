@@ -5,6 +5,7 @@ package e2e
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io"
@@ -20,6 +21,8 @@ import (
 
 func TestUsers(t *testing.T) {
 	client := http.Client{Timeout: 10 * time.Second}
+
+	var userID int64
 
 	t.Run("create user", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, apiURL+"/v1/users",
@@ -43,8 +46,10 @@ func TestUsers(t *testing.T) {
 
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 
-		assert.Equal(t, int64(1), result.User.ID)
 		assert.Equal(t, "shaba", result.User.Username)
+
+		require.NotZero(t, result.User.ID)
+		userID = result.User.ID
 	})
 
 	var accessToken string
@@ -87,7 +92,7 @@ func TestUsers(t *testing.T) {
 
 		require.NoError(t, writer.Close())
 
-		req, err := http.NewRequest(http.MethodPost, apiURL+"/v1/users/1/profile-picture", &body)
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/users/%d/profile-picture", apiURL, userID), &body)
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -112,7 +117,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("update user", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPatch, apiURL+"/v1/users/1",
+		req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("%s/v1/users/%d", apiURL, userID),
 			strings.NewReader(`{"username": "shabaninio", "game_tag": "#tag"}`))
 
 		require.NoError(t, err)
@@ -127,7 +132,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("show user", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, apiURL+"/v1/users/1", nil)
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/users/%d", apiURL, userID), nil)
 		require.NoError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -149,7 +154,7 @@ func TestUsers(t *testing.T) {
 
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 
-		assert.Equal(t, int64(1), result.User.ID)
+		assert.Equal(t, userID, result.User.ID)
 		assert.Equal(t, "shabaninio", result.User.Username)
 		assert.Equal(t, "#tag", *result.User.GameTag)
 		assert.NotNil(t, result.User.ProfilePicture)
@@ -157,7 +162,7 @@ func TestUsers(t *testing.T) {
 	})
 
 	t.Run("delete user", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodDelete, apiURL+"/v1/users/1", nil)
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/v1/users/%d", apiURL, userID), nil)
 		require.NoError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
