@@ -208,3 +208,59 @@ func TestRefreshTokenHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestLogoutHandler(t *testing.T) {
+	app := newTestApplication(t)
+
+	app.models.Tokens.(*mocks.MockTokenRepository).EXPECT().
+		Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+	tests := []struct {
+		name      string
+		input     string
+		wantCode  int
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:     "missing refresh token",
+			input:    `{"refresh_token": ""}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must be provided", result.Error["refresh_token"])
+			},
+		},
+		{
+			name:      "successful logout",
+			input:     `{"refresh_token": "valid"}`,
+			wantCode:  http.StatusNoContent,
+			checkBody: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/v1/users/logout", strings.NewReader(tt.input))
+
+			app.logoutHandler(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+
+			if tt.checkBody != nil {
+				assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
