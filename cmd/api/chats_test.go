@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sharasha07/clash-bot/internal/data"
@@ -178,6 +179,114 @@ func TestShowChatsHandler(t *testing.T) {
 			}
 
 			app.showChatsHandler(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+			assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+			if tt.checkBody != nil {
+				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
+
+func TestCreateChatHandler(t *testing.T) {
+	app := newTestApplication(t)
+
+	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
+		Insert(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+	tests := []struct {
+		name      string
+		userID    int64
+		input     string
+		wantCode  int
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:     "anonymous user",
+			userID:   0,
+			input:    `{"name": "chat"}`,
+			wantCode: http.StatusUnauthorized,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "authentication required to access this endpoint", result.Error)
+			},
+		},
+		{
+			name:     "whitespace name",
+			userID:   1,
+			input:    `{"name": "    "}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must not be empty", result.Error["name"])
+			},
+		},
+		{
+			name:     "big name",
+			userID:   1,
+			input:    `{"name": "shabashabashaba"}`,
+			wantCode: http.StatusUnprocessableEntity,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error map[string]string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, 1, len(result.Error))
+				assert.Equal(t, "must be a maximum of 10", result.Error["name"])
+			},
+		},
+		{
+			name:     "successful input",
+			userID:   1,
+			input:    `{"name": "  chat  "}`,
+			wantCode: http.StatusCreated,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Chat data.Chat `json:"chat"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, int64(1), result.Chat.UserID)
+				assert.Equal(t, "chat", result.Chat.Name)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/v1/chats", strings.NewReader(tt.input))
+
+			if tt.userID != 0 {
+				req = contextSetUser(req, &data.User{ID: tt.userID, Username: "luka"})
+			} else {
+				req = contextSetUser(req, data.AnonymousUser)
+			}
+
+			app.createChatHandler(rr, req)
 
 			resp := rr.Result()
 			defer resp.Body.Close()
