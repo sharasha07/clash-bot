@@ -17,6 +17,8 @@ import (
 )
 
 func TestReadIDParam(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -53,6 +55,8 @@ func TestReadIDParam(t *testing.T) {
 }
 
 func TestReadString(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -88,6 +92,8 @@ func TestReadString(t *testing.T) {
 }
 
 func TestReadInt(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -147,6 +153,8 @@ func TestReadInt(t *testing.T) {
 }
 
 func TestWriteJSON(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -162,6 +170,8 @@ func TestWriteJSON(t *testing.T) {
 			env:     envelope{"channel": make(chan int)},
 			wantErr: true,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				data, err := io.ReadAll(body)
 				require.NoError(t, err)
 
@@ -174,6 +184,8 @@ func TestWriteJSON(t *testing.T) {
 			env:     envelope{"error": "method not allowed"},
 			wantErr: false,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -196,6 +208,8 @@ func TestWriteJSON(t *testing.T) {
 			}},
 			wantErr: false,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User struct {
 						ID       int    `json:"id"`
@@ -240,6 +254,8 @@ func TestWriteJSON(t *testing.T) {
 }
 
 func TestReadJSON(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	type dst struct {

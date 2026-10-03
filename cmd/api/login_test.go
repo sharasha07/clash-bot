@@ -19,6 +19,8 @@ import (
 )
 
 func TestLoginHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.JWT.Secret = "secret"
 	app.cfg.JWT.AccessTTL = time.Hour
@@ -56,6 +58,8 @@ func TestLoginHandler(t *testing.T) {
 			input:    `{"username": "unknown", "password": "unknown123"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -71,6 +75,8 @@ func TestLoginHandler(t *testing.T) {
 			input:    `{"username": "shaba", "password": "lukaluka123"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -86,6 +92,8 @@ func TestLoginHandler(t *testing.T) {
 			input:    `{"username": "shaba", "password": "shaba1234"}`,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					AccessToken  string `json:"access_token"`
 					RefreshToken string `json:"refresh_token"`
@@ -121,6 +129,8 @@ func TestLoginHandler(t *testing.T) {
 }
 
 func TestRefreshTokenHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.JWT.Secret = "secret"
 	app.cfg.JWT.AccessTTL = time.Hour
@@ -146,6 +156,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			input:    `{"refresh_token": ""}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -162,6 +174,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			input:    `{"refresh_token": "invalid"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -177,6 +191,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			input:    `{"refresh_token": "valid"}`,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					AccessToken string `json:"access_token"`
 				}
@@ -210,6 +226,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 }
 
 func TestLogoutHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Tokens.(*mocks.MockTokenRepository).EXPECT().
@@ -226,6 +244,8 @@ func TestLogoutHandler(t *testing.T) {
 			input:    `{"refresh_token": ""}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}

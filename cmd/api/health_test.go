@@ -11,6 +11,8 @@ import (
 )
 
 func TestHealth(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	rr := httptest.NewRecorder()

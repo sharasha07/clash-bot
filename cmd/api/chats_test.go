@@ -19,6 +19,8 @@ import (
 )
 
 func TestShowChatsHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
@@ -38,6 +40,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "",
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -54,6 +58,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?page=abc",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -71,6 +77,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?page_size=abc",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -88,6 +96,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?page=0",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -105,6 +115,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?page=101",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -122,6 +134,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?page_size=11",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -139,6 +153,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?sort=name",
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -156,6 +172,8 @@ func TestShowChatsHandler(t *testing.T) {
 			query:    "?name=general&page=2&page_size=5&sort=-updated_at",
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Chats []data.Chat `json:"chats"`
 				}
@@ -197,6 +215,8 @@ func TestShowChatsHandler(t *testing.T) {
 }
 
 func TestCreateChatHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
@@ -215,6 +235,8 @@ func TestCreateChatHandler(t *testing.T) {
 			input:    `{"name": "chat"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -231,6 +253,8 @@ func TestCreateChatHandler(t *testing.T) {
 			input:    `{"name": "    "}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -248,6 +272,8 @@ func TestCreateChatHandler(t *testing.T) {
 			input:    `{"name": "shabashabashaba"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -265,6 +291,8 @@ func TestCreateChatHandler(t *testing.T) {
 			input:    `{"name": "  chat  "}`,
 			wantCode: http.StatusCreated,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Chat data.Chat `json:"chat"`
 				}
@@ -305,6 +333,8 @@ func TestCreateChatHandler(t *testing.T) {
 }
 
 func TestShowChatHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
@@ -330,6 +360,8 @@ func TestShowChatHandler(t *testing.T) {
 			id:       "1",
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -346,6 +378,8 @@ func TestShowChatHandler(t *testing.T) {
 			id:       "2",
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -362,6 +396,8 @@ func TestShowChatHandler(t *testing.T) {
 			id:       "1",
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Chat data.Chat `json:"chat"`
 				}
@@ -405,6 +441,8 @@ func TestShowChatHandler(t *testing.T) {
 }
 
 func TestUpdateChatHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
@@ -435,6 +473,8 @@ func TestUpdateChatHandler(t *testing.T) {
 			input:    `{"name": "chats"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -452,6 +492,8 @@ func TestUpdateChatHandler(t *testing.T) {
 			input:    `{"name": "chats"}`,
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -469,6 +511,8 @@ func TestUpdateChatHandler(t *testing.T) {
 			input:    `{"name": "    "}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -487,6 +531,8 @@ func TestUpdateChatHandler(t *testing.T) {
 			input:    `{"name": "shabashabashaba"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -505,6 +551,8 @@ func TestUpdateChatHandler(t *testing.T) {
 			input:    `{"name": "  chats  "}`,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Chat data.Chat `json:"chat"`
 				}
@@ -548,6 +596,8 @@ func TestUpdateChatHandler(t *testing.T) {
 }
 
 func TestDeleteChatHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
@@ -573,6 +623,8 @@ func TestDeleteChatHandler(t *testing.T) {
 			id:       "1",
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -589,6 +641,8 @@ func TestDeleteChatHandler(t *testing.T) {
 			id:       "2",
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}

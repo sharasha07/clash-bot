@@ -46,6 +46,8 @@ func TestMetrics(t *testing.T) {
 }
 
 func TestRecoverPanic(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -86,6 +88,8 @@ func TestRecoverPanic(t *testing.T) {
 }
 
 func TestEnableCORS(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.CORS.TrustedOrigins = []string{"https://example.com"}
 
@@ -161,6 +165,8 @@ func TestEnableCORS(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.Limiter.RPS = 2
 	app.cfg.Limiter.Burst = 4
@@ -226,6 +232,8 @@ func TestRateLimit(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.JWT.Secret = "secret_token"
 

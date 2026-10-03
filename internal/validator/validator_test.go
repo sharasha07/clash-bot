@@ -13,6 +13,8 @@ type err struct {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	v := New()
 
 	require.NotNil(t, v)
@@ -21,6 +23,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestValid(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		errors    map[string]string
@@ -56,6 +60,8 @@ func TestValid(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		adds       []err
@@ -101,6 +107,8 @@ func TestAdd(t *testing.T) {
 }
 
 func TestCheck(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		initial    map[string]string

@@ -12,6 +12,8 @@ import (
 )
 
 func TestRoutes(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -27,6 +29,8 @@ func TestRoutes(t *testing.T) {
 			path:     "/health",
 			wantCode: http.StatusMethodNotAllowed,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -43,6 +47,8 @@ func TestRoutes(t *testing.T) {
 			path:     "/healthsz",
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -59,6 +65,8 @@ func TestRoutes(t *testing.T) {
 			path:     "/health",
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Status string `json:"status"`
 				}

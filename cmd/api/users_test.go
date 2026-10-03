@@ -26,6 +26,8 @@ import (
 )
 
 func TestCreateUserHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.models.Users.(*mocks.MockUserRepository).EXPECT().Insert(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, user *data.User) error {
@@ -48,6 +50,8 @@ func TestCreateUserHandler(t *testing.T) {
 			input:    `{"username": "", "password": "saba123"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -65,6 +69,8 @@ func TestCreateUserHandler(t *testing.T) {
 			input:    `{"username": "shabashabashaba1", "password": ""}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -82,6 +88,8 @@ func TestCreateUserHandler(t *testing.T) {
 			input:    fmt.Sprintf(`{"username": "    ", "password": "%s"}`, strings.Repeat("a", 41)),
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -99,6 +107,8 @@ func TestCreateUserHandler(t *testing.T) {
 			input:    `{"username": "shaba", "password": "shaba1234"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -115,6 +125,8 @@ func TestCreateUserHandler(t *testing.T) {
 			input:    `{"username": "luka", "password": "lukaluka123"}`,
 			wantCode: http.StatusCreated,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User data.User `json:"user"`
 				}
@@ -149,6 +161,8 @@ func TestCreateUserHandler(t *testing.T) {
 }
 
 func TestUploadProfilePictureHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 	app.cfg.R2.PublicURL = "public"
 	app.cfg.R2.Bucket = "test_bucket"
@@ -179,6 +193,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   0,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -195,6 +211,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   2,
 			wantCode: http.StatusForbidden,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -211,6 +229,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusBadRequest,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -227,6 +247,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusBadRequest,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -243,6 +265,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusBadRequest,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -259,6 +283,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User data.User `json:"user"`
 				}
@@ -279,6 +305,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User data.User `json:"user"`
 				}
@@ -335,6 +363,8 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 }
 
 func TestShowUserHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	tests := []struct {
@@ -348,6 +378,8 @@ func TestShowUserHandler(t *testing.T) {
 			userID:   0,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -363,6 +395,8 @@ func TestShowUserHandler(t *testing.T) {
 			userID:   2,
 			wantCode: http.StatusForbidden,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -378,6 +412,8 @@ func TestShowUserHandler(t *testing.T) {
 			userID:   1,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User data.User `json:"user"`
 				}
@@ -420,6 +456,8 @@ func TestShowUserHandler(t *testing.T) {
 }
 
 func TestUpdateUserHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Users.(*mocks.MockUserRepository).EXPECT().Update(gomock.Any(), gomock.Any()).
@@ -438,6 +476,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"username": "luka"}`,
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -454,6 +494,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"username": "luka"}`,
 			wantCode: http.StatusForbidden,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -470,6 +512,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"username": "", "password": "saba123"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -487,6 +531,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"username": "shabashabashaba1", "password": ""}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -504,6 +550,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    fmt.Sprintf(`{"username": "    ", "password": "%s"}`, strings.Repeat("a", 41)),
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -521,6 +569,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"password": "saba123"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -538,6 +588,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    fmt.Sprintf(`{"password": "%s"}`, strings.Repeat("a", 41)),
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -555,6 +607,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"game_tag": "2UVOPRR9R"}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -572,6 +626,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"game_tag": ""}`,
 			wantCode: http.StatusUnprocessableEntity,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error map[string]string `json:"error"`
 				}
@@ -589,6 +645,8 @@ func TestUpdateUserHandler(t *testing.T) {
 			input:    `{"username": "shaba", "game_tag": "#2UVOPRR9R"}`,
 			wantCode: http.StatusOK,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					User data.User `json:"user"`
 				}
@@ -633,6 +691,8 @@ func TestUpdateUserHandler(t *testing.T) {
 }
 
 func TestDeleteUserHandler(t *testing.T) {
+	t.Parallel()
+
 	app := newTestApplication(t)
 
 	app.models.Users.(*mocks.MockUserRepository).EXPECT().Delete(gomock.Any(), gomock.Any()).
@@ -660,6 +720,8 @@ func TestDeleteUserHandler(t *testing.T) {
 			id:       "1",
 			wantCode: http.StatusUnauthorized,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -676,6 +738,8 @@ func TestDeleteUserHandler(t *testing.T) {
 			id:       "1",
 			wantCode: http.StatusForbidden,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
@@ -692,6 +756,8 @@ func TestDeleteUserHandler(t *testing.T) {
 			id:       "2",
 			wantCode: http.StatusNotFound,
 			checkBody: func(t *testing.T, body io.Reader) {
+				t.Helper()
+
 				var result struct {
 					Error string `json:"error"`
 				}
