@@ -21,7 +21,7 @@ func TestUsers(t *testing.T) {
 		require.NoError(t, err)
 
 		err = m.Insert(ctx, &User{Username: "Saba", Password: password{"123", "hash123"}})
-		assert.Equal(t, ErrDuplicateUsersUsername, err)
+		assert.ErrorIs(t, err, ErrDuplicateUsersUsername)
 	})
 
 	t.Run("GetByID", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestUsers(t *testing.T) {
 		assert.Equal(t, int32(1), user.Version)
 
 		user, err = m.GetByID(ctx, 2)
-		assert.Equal(t, ErrNoRecord, err)
+		assert.ErrorIs(t, err, ErrNoRecord)
 	})
 
 	t.Run("GetByUsername", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestUsers(t *testing.T) {
 		assert.Equal(t, int32(1), user.Version)
 
 		user, err = m.GetByUsername(ctx, "luka")
-		assert.Equal(t, ErrNoRecord, err)
+		assert.ErrorIs(t, err, ErrNoRecord)
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestUsers(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = m.Update(ctx, &User{ID: 1, Username: "saba", Version: 1})
-		assert.Equal(t, ErrEditConflict, err)
+		assert.ErrorIs(t, err, ErrEditConflict)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -64,6 +64,6 @@ func TestUsers(t *testing.T) {
 		require.NoError(t, err)
 
 		err = m.Delete(ctx, 1)
-		assert.Equal(t, ErrNoRecord, err)
+		assert.ErrorIs(t, err, ErrNoRecord)
 	})
 }
