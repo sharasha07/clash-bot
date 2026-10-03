@@ -631,3 +631,111 @@ func TestUpdateUserHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteUserHandler(t *testing.T) {
+	app := newTestApplication(t)
+
+	app.models.Users.(*mocks.MockUserRepository).EXPECT().Delete(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, id int64) error {
+			if id == 2 {
+				return data.ErrNoRecord
+			}
+
+			return nil
+		}).Times(2)
+
+	app.s3Client.(*mocks.MockS3ObjectStorage).EXPECT().
+		DeleteObject(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+	tests := []struct {
+		name      string
+		userID    int64
+		id        string
+		wantCode  int
+		checkBody func(t *testing.T, body io.Reader)
+	}{
+		{
+			name:     "anonymous user",
+			userID:   0,
+			id:       "1",
+			wantCode: http.StatusUnauthorized,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "authentication required to access this endpoint", result.Error)
+			},
+		},
+		{
+			name:     "unauthorized user",
+			userID:   2,
+			id:       "1",
+			wantCode: http.StatusForbidden,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "user is not permitted to access this resource", result.Error)
+			},
+		},
+		{
+			name:     "no record",
+			userID:   2,
+			id:       "2",
+			wantCode: http.StatusNotFound,
+			checkBody: func(t *testing.T, body io.Reader) {
+				var result struct {
+					Error string `json:"error"`
+				}
+
+				err := json.NewDecoder(body).Decode(&result)
+				require.NoError(t, err)
+
+				assert.Equal(t, "resource not found", result.Error)
+			},
+		},
+		{
+			name:      "success",
+			userID:    1,
+			id:        "1",
+			wantCode:  http.StatusNoContent,
+			checkBody: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/users/%s", tt.id), nil)
+
+			params := httprouter.Params{{Key: "id", Value: tt.id}}
+			req = req.WithContext(context.WithValue(req.Context(), httprouter.ParamsKey, params))
+
+			if tt.userID != 0 {
+				req = contextSetUser(req, &data.User{ID: tt.userID, Username: "luka"})
+			} else {
+				req = contextSetUser(req, data.AnonymousUser)
+			}
+
+			app.deleteUserHandler(rr, req)
+
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantCode, resp.StatusCode)
+
+			if tt.checkBody != nil {
+				assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+				tt.checkBody(t, resp.Body)
+			}
+		})
+	}
+}
