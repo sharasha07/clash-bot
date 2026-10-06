@@ -16,6 +16,35 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+func TestMetrics(t *testing.T) {
+	totalRequestsReceived.Set(0)
+	totalResponsesSent.Set(0)
+	totalProcessingTimeMicroseconds.Set(0)
+	totalResponsesSentByStatus.Init()
+
+	app := newTestApplication(t)
+
+	serve := func(status int) {
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+		})
+
+		app.metrics(next).ServeHTTP(rr, req)
+	}
+
+	serve(http.StatusOK)
+	serve(http.StatusOK)
+	serve(http.StatusMethodNotAllowed)
+
+	assert.Equal(t, "3", totalRequestsReceived.String())
+	assert.Equal(t, "3", totalResponsesSent.String())
+	assert.Equal(t, "2", totalResponsesSentByStatus.Get("200").String())
+	assert.Equal(t, "1", totalResponsesSentByStatus.Get("405").String())
+}
+
 func TestRecoverPanic(t *testing.T) {
 	t.Parallel()
 
