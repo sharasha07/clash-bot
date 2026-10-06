@@ -26,3 +26,5 @@ Unit, integration, and end-to-end tests.
 - PostgreSQL
 - Gemini 
 - Cloudflare R2
+
+![badge](https://github.com/sharasha07/clash-bot/actions/workflows/ci.yml/badge.svg)
