@@ -37,7 +37,7 @@ test/integration:
 ## test/e2e: run end-to-end tests
 .PHONY: test/e2e
 test/e2e: build/api
-	dotenvx run -- go test -race -tags=e2e ./e2e
+	dotenvx run -- go test -race -count=1 -tags=e2e ./e2e
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
