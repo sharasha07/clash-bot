@@ -24,6 +24,7 @@ Unit, integration, and end-to-end tests.
 
 - Go
 - PostgreSQL
+- Redis
 - Gemini 
 - Cloudflare R2
 
