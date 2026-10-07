@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/caarlos0/env/v11"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/sharasha07/clash-bot/internal/clash"
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/llm"
@@ -35,6 +36,9 @@ type Config struct {
 	}
 	CORS struct {
 		TrustedOrigins []string `env:"TRUSTED_ORIGINS,required"`
+	}
+	Redis struct {
+		URL string `env:"REDIS_URL,required"`
 	}
 	Limiter struct {
 		RPS     int  `env:"LIMITER_RPS,required"`
@@ -90,6 +94,22 @@ func main() {
 	defer pool.Close()
 	logger.Info("successfully connected to db")
 
+	opt, err := redis.ParseURL(cfg.Redis.URL)
+	if err != nil {
+		logger.Error("couldn't parse redis url", "err", err)
+		os.Exit(1)
+	}
+	redisClient := redis.NewClient(opt)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		logger.Error("couldn't connect to redis", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("successfully connected to redis")
+
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
 	s3Client := s3.New(s3.Options{
@@ -100,7 +120,7 @@ func main() {
 		HTTPClient:   httpClient,
 	})
 
-	cr := clash.NewAPIClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, cfg.CR.MaxResultBytes)
+	cr := clash.NewAPIClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, redisClient, logger, cfg.CR.MaxResultBytes)
 
 	llm, err := llm.NewGemini(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
 	if err != nil {

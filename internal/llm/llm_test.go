@@ -4,10 +4,12 @@ package llm
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/redis/go-redis/v9"
 	"github.com/sharasha07/clash-bot/internal/clash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +26,7 @@ type clashAPIClientConfig struct {
 	BaseURL        string        `env:"CLASH_ROYALE_BASE_URL,required"`
 	APIToken       string        `env:"CLASH_ROYALE_API_TOKEN,required"`
 	Timeout        time.Duration `env:"CLASH_ROYALE_TIMEOUT,required"`
+	RedisURL       string        `env:"REDIS_URL,required"`
 	MaxResultBytes int           `env:"CLASH_ROYALE_MAX_RESULT_BYTES,required"`
 }
 
@@ -34,7 +37,11 @@ func TestGeminiClient(t *testing.T) {
 	var cfg2 clashAPIClientConfig
 	require.NoError(t, env.Parse(&cfg2))
 
-	crClient := clash.NewAPIClient(cfg2.BaseURL, cfg2.APIToken, cfg2.Timeout, cfg2.MaxResultBytes)
+	opt, err := redis.ParseURL(cfg2.RedisURL)
+	require.NoError(t, err)
+
+	redisClient := redis.NewClient(opt)
+	crClient := clash.NewAPIClient(cfg2.BaseURL, cfg2.APIToken, cfg2.Timeout, redisClient, slog.New(slog.DiscardHandler), cfg2.MaxResultBytes)
 
 	client, err := NewGemini(cfg1.ApiKey, cfg1.BaseURL, cfg1.Model, cfg1.Timeout, crClient)
 	require.NoError(t, err)

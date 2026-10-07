@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -27,15 +30,19 @@ type ClashClient interface {
 type apiClient struct {
 	baseURL        string
 	token          string
-	http           *http.Client
+	httpClient     *http.Client
+	redisClient    *redis.Client
+	logger         *slog.Logger
 	maxResultBytes int
 }
 
-func NewAPIClient(baseURL, token string, timeout time.Duration, maxResultBytes int) *apiClient {
+func NewAPIClient(baseURL, token string, timeout time.Duration, redisClient *redis.Client, logger *slog.Logger, maxResultBytes int) *apiClient {
 	return &apiClient{
 		baseURL:        strings.TrimRight(baseURL, "/"),
 		token:          token,
-		http:           &http.Client{Timeout: timeout},
+		httpClient:     &http.Client{Timeout: timeout},
+		redisClient:    redisClient,
+		logger:         logger,
 		maxResultBytes: maxResultBytes,
 	}
 }
@@ -80,34 +87,47 @@ func (c *apiClient) get(ctx context.Context, path string, query url.Values) (str
 
 	endpoint.RawQuery = query.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	value, err := c.redisClient.Get(ctx, endpoint.String()).Result()
 	if err != nil {
-		return "", err
+		if !errors.Is(err, redis.Nil) {
+			c.logger.Warn("error reading from redis", "err", err)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+		if err != nil {
+			return "", err
+		}
+
+		req.Header.Set("Authorization", "Bearer "+c.token)
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		switch {
+		case resp.StatusCode == http.StatusNotFound:
+			return "", ErrNotFound
+		case resp.StatusCode != http.StatusOK:
+			return "", ErrServiceUnavailable
+		}
+
+		body, err := io.ReadAll(io.LimitReader(resp.Body, int64(c.maxResultBytes)+1))
+		if err != nil {
+			return "", err
+		}
+
+		if len(body) > c.maxResultBytes {
+			return "", ErrResponseTooLarge
+		}
+
+		if err := c.redisClient.Set(ctx, endpoint.String(), string(body), 15*time.Minute).Err(); err != nil {
+			c.logger.Warn("error writing to redis", "err", err)
+		}
+
+		return string(body), nil
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.token)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	switch {
-	case resp.StatusCode == http.StatusNotFound:
-		return "", ErrNotFound
-	case resp.StatusCode != http.StatusOK:
-		return "", ErrServiceUnavailable
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, int64(c.maxResultBytes)+1))
-	if err != nil {
-		return "", err
-	}
-
-	if len(body) > c.maxResultBytes {
-		return "", ErrResponseTooLarge
-	}
-
-	return string(body), nil
+	return value, nil
 }
