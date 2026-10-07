@@ -26,7 +26,7 @@ type r2Config struct {
 	S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
 }
 
-func TestS3(t *testing.T) {
+func TestR2(t *testing.T) {
 	var cfg r2Config
 	require.NoError(t, env.Parse(&cfg))
 

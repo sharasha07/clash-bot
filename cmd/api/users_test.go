@@ -167,7 +167,7 @@ func TestUploadProfilePictureHandler(t *testing.T) {
 	app.cfg.R2.PublicURL = "public"
 	app.cfg.R2.Bucket = "test_bucket"
 
-	app.s3Client.(*mocks.MockS3ObjectStorage).EXPECT().
+	app.s3Client.(*mocks.MockObjectStorage).EXPECT().
 		PutObject(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 
 	app.models.Users.(*mocks.MockUserRepository).EXPECT().
@@ -704,7 +704,7 @@ func TestDeleteUserHandler(t *testing.T) {
 			return nil
 		}).Times(2)
 
-	app.s3Client.(*mocks.MockS3ObjectStorage).EXPECT().
+	app.s3Client.(*mocks.MockObjectStorage).EXPECT().
 		DeleteObject(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 	tests := []struct {

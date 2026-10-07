@@ -53,18 +53,18 @@ var tools = []*genai.Tool{{
 	},
 }}
 
-//go:generate mockgen -source=llm.go -destination=../mocks/llm.go -package=mocks
-type LLM interface {
+//go:generate mockgen -source=llm.go -destination=../mocks/llm_client_mock.go -package=mocks
+type LLMClient interface {
 	GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error)
 }
 
-type GeminiLLM struct {
+type GeminiClient struct {
 	Models   *genai.Models
 	Model    string
 	CrClient clash.ClashClient
 }
 
-func NewGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient clash.ClashClient) (*GeminiLLM, error) {
+func NewGemini(apiKey, baseURL, model string, timeout time.Duration, crClient clash.ClashClient) (*GeminiClient, error) {
 	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
@@ -81,10 +81,10 @@ func NewGeminiLLM(apiKey, baseURL, model string, timeout time.Duration, crClient
 		return nil, err
 	}
 
-	return &GeminiLLM{Models: client.Models, Model: model, CrClient: crClient}, nil
+	return &GeminiClient{Models: client.Models, Model: model, CrClient: crClient}, nil
 }
 
-func (l *GeminiLLM) GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
+func (l *GeminiClient) GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
 	contents := genai.Text(prompt)
 
 	tag := "none"
@@ -124,7 +124,7 @@ func (l *GeminiLLM) GenerateReply(ctx context.Context, prompt string, gameTag *s
 	return "", errors.New("llm exceeded maximum tool call rounds")
 }
 
-func (l *GeminiLLM) execute(ctx context.Context, calls []*genai.FunctionCall, gameTag *string) *genai.Content {
+func (l *GeminiClient) execute(ctx context.Context, calls []*genai.FunctionCall, gameTag *string) *genai.Content {
 	parts := make([]*genai.Part, 0, len(calls))
 
 	for _, call := range calls {

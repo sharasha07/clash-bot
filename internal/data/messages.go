@@ -16,7 +16,7 @@ const (
 	RoleAssistant = "assistant"
 )
 
-//go:generate mockgen -source=messages.go -destination=../mocks/message_repo.go -package=mocks
+//go:generate mockgen -source=messages.go -destination=../mocks/message_mock.go -package=mocks
 type MessageRepository interface {
 	GetAll(ctx context.Context, chat_id, user_id int64, filters Filters) ([]Message, error)
 	Insert(ctx context.Context, message *Message) error

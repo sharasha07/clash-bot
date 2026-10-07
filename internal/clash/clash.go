@@ -17,22 +17,22 @@ var (
 	ErrResponseTooLarge   = errors.New("response too large")
 )
 
-//go:generate mockgen -source=clash.go -destination=../mocks/clash_api.go -package=mocks
+//go:generate mockgen -source=clash.go -destination=../mocks/clash_client_mock.go -package=mocks
 type ClashClient interface {
 	GetPlayer(ctx context.Context, tag string) (string, error)
 	GetPlayerBattleLog(ctx context.Context, tag string, limit int) (string, error)
 	GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (string, error)
 }
 
-type Client struct {
+type apiClient struct {
 	baseURL        string
 	token          string
 	http           *http.Client
 	maxResultBytes int
 }
 
-func NewClient(baseURL, token string, timeout time.Duration, maxResultBytes int) *Client {
-	return &Client{
+func NewAPIClient(baseURL, token string, timeout time.Duration, maxResultBytes int) *apiClient {
+	return &apiClient{
 		baseURL:        strings.TrimRight(baseURL, "/"),
 		token:          token,
 		http:           &http.Client{Timeout: timeout},
@@ -40,13 +40,13 @@ func NewClient(baseURL, token string, timeout time.Duration, maxResultBytes int)
 	}
 }
 
-func (c *Client) GetPlayer(ctx context.Context, tag string) (string, error) {
+func (c *apiClient) GetPlayer(ctx context.Context, tag string) (string, error) {
 	tag = strings.ToUpper(strings.TrimSpace(tag))
 
 	return c.get(ctx, "/v1/players/"+url.PathEscape(tag), nil)
 }
 
-func (c *Client) GetPlayerBattleLog(ctx context.Context, tag string, limit int) (string, error) {
+func (c *apiClient) GetPlayerBattleLog(ctx context.Context, tag string, limit int) (string, error) {
 	tag = strings.ToUpper(strings.TrimSpace(tag))
 
 	if limit > 50 {
@@ -59,7 +59,7 @@ func (c *Client) GetPlayerBattleLog(ctx context.Context, tag string, limit int) 
 	return c.get(ctx, "/v1/players/"+url.PathEscape(tag)+"/battlelog", query)
 }
 
-func (c *Client) GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (string, error) {
+func (c *apiClient) GetPlayersUpcomingChests(ctx context.Context, tag string, limit int) (string, error) {
 	tag = strings.ToUpper(strings.TrimSpace(tag))
 
 	if limit > 50 {
@@ -72,7 +72,7 @@ func (c *Client) GetPlayersUpcomingChests(ctx context.Context, tag string, limit
 	return c.get(ctx, "/v1/players/"+url.PathEscape(tag)+"/upcomingchests", query)
 }
 
-func (c *Client) get(ctx context.Context, path string, query url.Values) (string, error) {
+func (c *apiClient) get(ctx context.Context, path string, query url.Values) (string, error) {
 	endpoint, err := url.Parse(c.baseURL + path)
 	if err != nil {
 		return "", err

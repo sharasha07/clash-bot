@@ -14,7 +14,7 @@ import (
 	"github.com/pascaldekloe/jwt"
 )
 
-//go:generate mockgen -source=tokens.go -destination=../mocks/token_repo.go -package=mocks
+//go:generate mockgen -source=tokens.go -destination=../mocks/token_mock.go -package=mocks
 type TokenRepository interface {
 	Insert(ctx context.Context, token string, userID int64, ttl time.Duration) error
 	GetUserID(ctx context.Context, token string) (int64, error)

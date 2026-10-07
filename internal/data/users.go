@@ -20,7 +20,7 @@ var (
 
 var AnonymousUser *User
 
-//go:generate mockgen -source=users.go -destination=../mocks/user_repo.go -package=mocks
+//go:generate mockgen -source=users.go -destination=../mocks/user_mock.go -package=mocks
 type UserRepository interface {
 	Insert(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (User, error)

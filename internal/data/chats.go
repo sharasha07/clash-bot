@@ -13,7 +13,7 @@ import (
 	"github.com/sharasha07/clash-bot/internal/validator"
 )
 
-//go:generate mockgen -source=chats.go -destination=../mocks/chat_repo.go -package=mocks
+//go:generate mockgen -source=chats.go -destination=../mocks/chat_mock.go -package=mocks
 type ChatRepository interface {
 	GetAll(ctx context.Context, user_id int64, name string, filters Filters) ([]Chat, error)
 	Insert(ctx context.Context, chat *Chat) error

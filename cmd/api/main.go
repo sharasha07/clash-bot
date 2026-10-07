@@ -22,8 +22,8 @@ type application struct {
 	logger    *slog.Logger
 	cfg       Config
 	models    data.Models
-	s3Client  objectstorage.S3ObjectStorage
-	llmClient llm.LLM
+	s3Client  objectstorage.ObjectStorage
+	llmClient llm.LLMClient
 }
 
 type Config struct {
@@ -100,9 +100,9 @@ func main() {
 		HTTPClient:   httpClient,
 	})
 
-	cr := clash.NewClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, cfg.CR.MaxResultBytes)
+	cr := clash.NewAPIClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, cfg.CR.MaxResultBytes)
 
-	llm, err := llm.NewGeminiLLM(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
+	llm, err := llm.NewGemini(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
 	if err != nil {
 		logger.Error("couldn't create gemini client", "err", err)
 		os.Exit(1)

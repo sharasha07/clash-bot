@@ -14,17 +14,17 @@ import (
 
 const playerTag = "#U8RYGC8GU"
 
-type clashConfig struct {
+type apiClientConfig struct {
 	BaseURL        string        `env:"CLASH_ROYALE_BASE_URL,required"`
 	APIToken       string        `env:"CLASH_ROYALE_API_TOKEN,required"`
 	Timeout        time.Duration `env:"CLASH_ROYALE_TIMEOUT,required"`
 	MaxResultBytes int           `env:"CLASH_ROYALE_MAX_RESULT_BYTES,required"`
 }
 
-func TestClash(t *testing.T) {
-	var cfg clashConfig
+func TestAPIClient(t *testing.T) {
+	var cfg apiClientConfig
 	require.NoError(t, env.Parse(&cfg))
-	c := NewClient(cfg.BaseURL, cfg.APIToken, cfg.Timeout, cfg.MaxResultBytes)
+	c := NewAPIClient(cfg.BaseURL, cfg.APIToken, cfg.Timeout, cfg.MaxResultBytes)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -51,7 +51,7 @@ func TestClash(t *testing.T) {
 	})
 
 	t.Run("ResponseTooLarge", func(t *testing.T) {
-		c := NewClient(cfg.BaseURL, cfg.APIToken, cfg.Timeout, 1)
+		c := NewAPIClient(cfg.BaseURL, cfg.APIToken, cfg.Timeout, 1)
 
 		_, err := c.GetPlayer(ctx, playerTag)
 		require.ErrorIs(t, err, ErrResponseTooLarge)

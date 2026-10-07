@@ -241,7 +241,7 @@ func TestCreateMessageHandler(t *testing.T) {
 		GetAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return([]data.Message{}, nil).Times(1)
 
-	app.llmClient.(*mocks.MockLLM).EXPECT().
+	app.llmClient.(*mocks.MockLLMClient).EXPECT().
 		GenerateReply(gomock.Any(), gomock.Any(), gomock.Any()).Return("hello there", nil).Times(1)
 
 	tests := []struct {

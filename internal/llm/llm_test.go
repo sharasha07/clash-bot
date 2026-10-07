@@ -13,30 +13,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type geminiConfig struct {
+type geminiClientConfig struct {
 	BaseURL string        `env:"GEMINI_BASE_URL,required"`
 	ApiKey  string        `env:"GEMINI_API_KEY,required"`
 	Model   string        `env:"GEMINI_MODEL,required"`
 	Timeout time.Duration `env:"GEMINI_TIMEOUT,required"`
 }
 
-type clashConfig struct {
+type clashAPIClientConfig struct {
 	BaseURL        string        `env:"CLASH_ROYALE_BASE_URL,required"`
 	APIToken       string        `env:"CLASH_ROYALE_API_TOKEN,required"`
 	Timeout        time.Duration `env:"CLASH_ROYALE_TIMEOUT,required"`
 	MaxResultBytes int           `env:"CLASH_ROYALE_MAX_RESULT_BYTES,required"`
 }
 
-func TestLLM(t *testing.T) {
-	var cfg1 geminiConfig
+func TestGeminiClient(t *testing.T) {
+	var cfg1 geminiClientConfig
 	require.NoError(t, env.Parse(&cfg1))
 
-	var cfg2 clashConfig
+	var cfg2 clashAPIClientConfig
 	require.NoError(t, env.Parse(&cfg2))
 
-	crClient := clash.NewClient(cfg2.BaseURL, cfg2.APIToken, cfg2.Timeout, cfg2.MaxResultBytes)
+	crClient := clash.NewAPIClient(cfg2.BaseURL, cfg2.APIToken, cfg2.Timeout, cfg2.MaxResultBytes)
 
-	client, err := NewGeminiLLM(cfg1.ApiKey, cfg1.BaseURL, cfg1.Model, cfg1.Timeout, crClient)
+	client, err := NewGemini(cfg1.ApiKey, cfg1.BaseURL, cfg1.Model, cfg1.Timeout, crClient)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
