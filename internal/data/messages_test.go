@@ -41,13 +41,9 @@ func TestMessages(t *testing.T) {
 
 		filters := Filters{Page: 1, PageSize: 10, Sort: "-id", SortSafeList: []string{"id", "-id"}}
 
-		messages, err := m.GetAll(ctx, chat.ID, user.ID, filters)
+		messages, err := m.GetAll(ctx, chat.ID, filters)
 		require.NoError(t, err)
 		require.Len(t, messages, 3)
 		assert.Equal(t, []string{"hello3", "hello2", "hello"}, []string{messages[0].Content, messages[1].Content, messages[2].Content})
-
-		messages, err = m.GetAll(ctx, chat.ID, 2, filters)
-		require.NoError(t, err)
-		assert.Empty(t, messages)
 	})
 }

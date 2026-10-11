@@ -34,7 +34,7 @@ func TestShowMessagesHandler(t *testing.T) {
 		}).Times(6)
 
 	app.models.Messages.(*mocks.MockMessageRepository).EXPECT().
-		GetAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetAll(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return([]data.Message{{ID: 1, ChatID: 1, Role: data.RoleUser, Content: "hello"}}, nil).Times(1)
 
 	tests := []struct {
@@ -238,7 +238,7 @@ func TestCreateMessageHandler(t *testing.T) {
 		Touch(gomock.Any(), gomock.Any(), gomock.Any()).Return(data.Chat{}, nil).Times(1)
 
 	app.models.Messages.(*mocks.MockMessageRepository).EXPECT().
-		GetAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetAll(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return([]data.Message{}, nil).Times(1)
 
 	app.llmClient.(*mocks.MockLLMClient).EXPECT().

@@ -42,18 +42,18 @@ func (m *MockMessageRepository) EXPECT() *MockMessageRepositoryMockRecorder {
 }
 
 // GetAll mocks base method.
-func (m *MockMessageRepository) GetAll(ctx context.Context, chat_id, user_id int64, filters data.Filters) ([]data.Message, error) {
+func (m *MockMessageRepository) GetAll(ctx context.Context, chat_id int64, filters data.Filters) ([]data.Message, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll", ctx, chat_id, user_id, filters)
+	ret := m.ctrl.Call(m, "GetAll", ctx, chat_id, filters)
 	ret0, _ := ret[0].([]data.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAll indicates an expected call of GetAll.
-func (mr *MockMessageRepositoryMockRecorder) GetAll(ctx, chat_id, user_id, filters any) *gomock.Call {
+func (mr *MockMessageRepositoryMockRecorder) GetAll(ctx, chat_id, filters any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockMessageRepository)(nil).GetAll), ctx, chat_id, user_id, filters)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockMessageRepository)(nil).GetAll), ctx, chat_id, filters)
 }
 
 // Insert mocks base method.

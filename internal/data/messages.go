@@ -18,7 +18,7 @@ const (
 
 //go:generate mockgen -source=messages.go -destination=../mocks/message_mock.go -package=mocks
 type MessageRepository interface {
-	GetAll(ctx context.Context, chat_id, user_id int64, filters Filters) ([]Message, error)
+	GetAll(ctx context.Context, chat_id int64, filters Filters) ([]Message, error)
 	Insert(ctx context.Context, message *Message) error
 }
 
@@ -42,16 +42,15 @@ type MessageModel struct {
 	pool *pgxpool.Pool
 }
 
-func (m MessageModel) GetAll(ctx context.Context, chat_id, user_id int64, filters Filters) ([]Message, error) {
+func (m MessageModel) GetAll(ctx context.Context, chat_id int64, filters Filters) ([]Message, error) {
 	query := fmt.Sprintf(`
-		SELECT m.id, m.chat_id, m.role, m.content, m.created_at
-		FROM messages m
-		JOIN chats c ON c.id = m.chat_id
-		WHERE m.chat_id = $1 AND c.user_id = $2
-		ORDER BY m.%s %s
-		LIMIT $3 OFFSET $4`, filters.SortColumn(), filters.SortOrder())
+		SELECT id, chat_id, role, content, created_at
+		FROM messages
+		WHERE chat_id = $1
+		ORDER BY %s %s
+		LIMIT $2 OFFSET $3`, filters.SortColumn(), filters.SortOrder())
 
-	args := []any{chat_id, user_id, filters.PageSize, filters.Offset()}
+	args := []any{chat_id, filters.PageSize, filters.Offset()}
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

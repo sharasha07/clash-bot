@@ -50,7 +50,7 @@ func (app *application) showMessagesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	messages, err := app.models.Messages.GetAll(r.Context(), id, user.ID, filters)
+	messages, err := app.models.Messages.GetAll(r.Context(), id, filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -118,7 +118,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		app.logger.Error("failed to touch chat", "err", err, "chat_id", id)
 	}
 
-	history, err := app.models.Messages.GetAll(ctx, id, user.ID, data.Filters{
+	history, err := app.models.Messages.GetAll(ctx, id, data.Filters{
 		Page:         1,
 		PageSize:     20,
 		Sort:         "-id",
