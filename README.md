@@ -11,6 +11,7 @@ One of the main ways Clash Royale players check their or other players' in-game 
 
     make db/migrate/up
     make run/api
+    make run/worker
 
 ## Tests
 
@@ -25,6 +26,7 @@ Unit, integration, and end-to-end tests.
 - Go
 - PostgreSQL
 - Redis
+- RabbitMQ
 - Gemini 
 - Cloudflare R2
 

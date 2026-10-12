@@ -14,6 +14,16 @@ run/api:
 build/api:
 	go build -o ./bin/api ./cmd/api
 
+## run/worker: run the cmd/worker application
+.PHONY: run/worker
+run/worker:
+	dotenvx run -- go run ./cmd/worker
+
+## build/worker: build the cmd/worker application
+.PHONY: build/worker
+build/worker:
+	go build -o ./bin/worker ./cmd/worker
+
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
 audit:
@@ -36,7 +46,7 @@ test/integration:
 
 ## test/e2e: run end-to-end tests
 .PHONY: test/e2e
-test/e2e: build/api
+test/e2e: build/api build/worker
 	dotenvx run -- go test -race -count=1 -tags=e2e ./e2e
 
 ## db/psql: connect to the database using psql

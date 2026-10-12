@@ -232,17 +232,14 @@ func TestCreateMessageHandler(t *testing.T) {
 		}).Times(4)
 
 	app.models.Messages.(*mocks.MockMessageRepository).EXPECT().
-		Insert(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		Insert(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	app.models.Chats.(*mocks.MockChatRepository).EXPECT().
 		Touch(gomock.Any(), gomock.Any(), gomock.Any()).Return(data.Chat{}, nil).Times(1)
 
-	app.models.Messages.(*mocks.MockMessageRepository).EXPECT().
-		GetAll(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return([]data.Message{}, nil).Times(1)
-
-	app.llmClient.(*mocks.MockLLMClient).EXPECT().
-		GenerateReply(gomock.Any(), gomock.Any(), gomock.Any()).Return("hello there", nil).Times(1)
+	app.broker.(*mocks.MockMessageBroker).EXPECT().
+		PublishWithContext(gomock.Any(), "", "generate_reply", false, false, gomock.Any()).
+		Return(nil).Times(1)
 
 	tests := []struct {
 		name      string
@@ -335,13 +332,12 @@ func TestCreateMessageHandler(t *testing.T) {
 			userID:   1,
 			id:       "1",
 			input:    `{"content": "  hello  "}`,
-			wantCode: http.StatusCreated,
+			wantCode: http.StatusAccepted,
 			checkBody: func(t *testing.T, body io.Reader) {
 				t.Helper()
 
 				var result struct {
-					Message data.Message  `json:"message"`
-					Reply   *data.Message `json:"reply"`
+					Message data.Message `json:"message"`
 				}
 
 				err := json.NewDecoder(body).Decode(&result)
@@ -349,10 +345,6 @@ func TestCreateMessageHandler(t *testing.T) {
 
 				assert.Equal(t, data.RoleUser, result.Message.Role)
 				assert.Equal(t, "hello", result.Message.Content)
-
-				require.NotNil(t, result.Reply)
-				assert.Equal(t, data.RoleAssistant, result.Reply.Role)
-				assert.Equal(t, "hello there", result.Reply.Content)
 			},
 		},
 	}
