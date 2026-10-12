@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/validator"
 )
@@ -87,7 +87,6 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// handle input
 	var input struct {
 		Content string `json:"content"`
 	}
@@ -118,53 +117,37 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		app.logger.Error("failed to touch chat", "err", err, "chat_id", id)
 	}
 
-	history, err := app.models.Messages.GetAll(ctx, id, data.Filters{
-		Page:         1,
-		PageSize:     20,
-		Sort:         "-id",
-		SortSafeList: []string{"id", "-id", "created_at", "-created_at"},
-	})
+	body := struct {
+		User    data.User
+		Message data.Message
+	}{
+		User:    *user,
+		Message: message,
+	}
 
+	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		app.logger.Error("failed to fetch recent messages", "err", err)
-	}
-
-	slices.Reverse(history)
-
-	// build prompt with latest messages
-	var b strings.Builder
-
-	for _, m := range history {
-		switch m.Role {
-		case data.RoleUser:
-			fmt.Fprintf(&b, "User: %s\n", m.Content)
-		case data.RoleAssistant:
-			fmt.Fprintf(&b, "Assistant: %s\n", m.Content)
-		}
-	}
-
-	prompt := strings.TrimSpace(b.String())
-
-	// generate LLM reply
-	var assistantMessage *data.Message
-
-	reply, err := app.llmClient.GenerateReply(ctx, prompt, user.GameTag)
-	if err != nil {
-		app.logger.Error("failed to generate reply", "err", err, "chat_id", id)
-	} else {
-		assistantMessage = &data.Message{
-			ChatID:  id,
-			Role:    data.RoleAssistant,
-			Content: reply,
-		}
-
-		if err := app.models.Messages.Insert(ctx, assistantMessage); err != nil {
-			app.logger.Error("failed to store reply", "err", err, "chat_id", id)
-			assistantMessage = nil
-		}
-	}
-
-	if err := app.writeJSON(w, http.StatusCreated, envelope{"message": message, "reply": assistantMessage}); err != nil {
 		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.brokerChannel.PublishWithContext(r.Context(),
+		"",
+		"generate_reply",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        jsonBody,
+		},
+	)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if err := app.writeJSON(w, http.StatusAccepted, envelope{"message": message}); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 }

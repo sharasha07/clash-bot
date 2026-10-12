@@ -21,7 +21,6 @@ func newTestApplication(t *testing.T) *application {
 			Chats:    mocks.NewMockChatRepository(ctrl),
 			Messages: mocks.NewMockMessageRepository(ctrl),
 		},
-		s3Client:  mocks.NewMockObjectStorage(ctrl),
-		llmClient: mocks.NewMockLLMClient(ctrl),
+		s3Client: mocks.NewMockObjectStorage(ctrl),
 	}
 }

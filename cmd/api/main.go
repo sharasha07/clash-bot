@@ -12,19 +12,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/caarlos0/env/v11"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
-	"github.com/sharasha07/clash-bot/internal/clash"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sharasha07/clash-bot/internal/data"
-	"github.com/sharasha07/clash-bot/internal/llm"
 	"github.com/sharasha07/clash-bot/internal/objectstorage"
 )
 
 type application struct {
-	logger    *slog.Logger
-	cfg       Config
-	models    data.Models
-	s3Client  objectstorage.ObjectStorage
-	llmClient llm.LLMClient
+	logger        *slog.Logger
+	cfg           Config
+	models        data.Models
+	s3Client      objectstorage.ObjectStorage
+	brokerChannel *amqp.Channel
 }
 
 type Config struct {
@@ -36,9 +34,6 @@ type Config struct {
 	}
 	CORS struct {
 		TrustedOrigins []string `env:"TRUSTED_ORIGINS,required"`
-	}
-	Redis struct {
-		URL string `env:"REDIS_URL,required"`
 	}
 	Limiter struct {
 		RPS     int  `env:"LIMITER_RPS,required"`
@@ -63,52 +58,28 @@ type Config struct {
 		PublicURL       string `env:"R2_PUBLIC_URL,required"`
 		S3ApiEndpoint   string `env:"S3_API_ENDPOINT,required"`
 	}
-	CR struct {
-		BaseURL        string        `env:"CLASH_ROYALE_BASE_URL,required"`
-		APIToken       string        `env:"CLASH_ROYALE_API_TOKEN,required"`
-		Timeout        time.Duration `env:"CLASH_ROYALE_TIMEOUT,required"`
-		MaxResultBytes int           `env:"CLASH_ROYALE_MAX_RESULT_BYTES,required"`
-	}
-	Gemini struct {
-		BaseURL string        `env:"GEMINI_BASE_URL,required"`
-		ApiKey  string        `env:"GEMINI_API_KEY,required"`
-		Model   string        `env:"GEMINI_MODEL,required"`
-		Timeout time.Duration `env:"GEMINI_TIMEOUT,required"`
+	RabbitMQ struct {
+		URL string `env:"RABBITMQ_URL,required"`
 	}
 }
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	exitOnError := func(err error, msg string) {
+		if err != nil {
+			logger.Error(msg, "err", err)
+			os.Exit(1)
+		}
+	}
 
 	var cfg Config
-	if err := env.Parse(&cfg); err != nil {
-		logger.Error("failed to parse env vars", "err", err)
-		os.Exit(1)
-	}
+	err := env.Parse(&cfg)
+	exitOnError(err, "failed to parse env vars")
 
 	pool, err := connectToDB(cfg)
-	if err != nil {
-		logger.Error("couldn't connect to db", "err", err)
-		os.Exit(1)
-	}
+	exitOnError(err, "failed to connect to db")
 	defer pool.Close()
 	logger.Info("successfully connected to db")
-
-	opt, err := redis.ParseURL(cfg.Redis.URL)
-	if err != nil {
-		logger.Error("couldn't parse redis url", "err", err)
-		os.Exit(1)
-	}
-	redisClient := redis.NewClient(opt)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		logger.Error("couldn't connect to redis", "err", err)
-		os.Exit(1)
-	}
-	logger.Info("successfully connected to redis")
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
@@ -120,26 +91,36 @@ func main() {
 		HTTPClient:   httpClient,
 	})
 
-	cr := clash.NewAPIClient(cfg.CR.BaseURL, cfg.CR.APIToken, cfg.CR.Timeout, redisClient, logger, cfg.CR.MaxResultBytes)
+	conn, err := amqp.Dial(cfg.RabbitMQ.URL)
+	exitOnError(err, "failed to connect to RabbitMQ")
+	defer conn.Close()
 
-	llm, err := llm.NewGemini(cfg.Gemini.ApiKey, cfg.Gemini.BaseURL, cfg.Gemini.Model, cfg.Gemini.Timeout, cr)
-	if err != nil {
-		logger.Error("couldn't create gemini client", "err", err)
-		os.Exit(1)
-	}
+	ch, err := conn.Channel()
+	exitOnError(err, "failed to open a channel")
+	defer ch.Close()
+
+	_, err = ch.QueueDeclare(
+		"generate_reply",
+		true,
+		false,
+		false,
+		false,
+		amqp.Table{
+			amqp.QueueTypeArg: amqp.QueueTypeQuorum,
+		},
+	)
+	exitOnError(err, "failed to declare a queue")
 
 	app := &application{
-		logger:    logger,
-		cfg:       cfg,
-		models:    data.NewModels(pool),
-		s3Client:  s3Client,
-		llmClient: llm,
+		logger:        logger,
+		cfg:           cfg,
+		models:        data.NewModels(pool),
+		s3Client:      s3Client,
+		brokerChannel: ch,
 	}
 
-	if err := app.serve(); err != nil {
-		logger.Error("server failed", "err", err)
-		os.Exit(1)
-	}
+	err = app.serve()
+	exitOnError(err, "server failed")
 }
 
 func connectToDB(cfg Config) (*pgxpool.Pool, error) {
