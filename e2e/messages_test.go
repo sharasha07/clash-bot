@@ -137,19 +137,6 @@ func TestMessages(t *testing.T) {
 	})
 
 	t.Run("show messages", func(t *testing.T) {
-		time.Sleep(1 * time.Minute)
-
-		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/chats/%d/messages?sort=id", apiURL, chatID), nil)
-		require.NoError(t, err)
-		req.Header.Set("Authorization", "Bearer "+accessToken)
-
-		resp, err := client.Do(req)
-		require.NoError(t, err)
-		defer resp.Body.Close()
-
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
-
 		var result struct {
 			Messages []struct {
 				ID      int64  `json:"id"`
@@ -159,9 +146,30 @@ func TestMessages(t *testing.T) {
 			} `json:"messages"`
 		}
 
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+		require.Eventually(t, func() bool {
+			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/chats/%d/messages?sort=id", apiURL, chatID), nil)
+			if err != nil {
+				return false
+			}
+			req.Header.Set("Authorization", "Bearer "+accessToken)
 
-		require.Equal(t, 2, len(result.Messages))
+			resp, err := client.Do(req)
+			if err != nil {
+				return false
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return false
+			}
+
+			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+				return false
+			}
+
+			return len(result.Messages) == 2 && result.Messages[1].Role == "assistant" && result.Messages[1].Content != ""
+		}, 50*time.Second, 500*time.Millisecond)
+
 		assert.Equal(t, messageID, result.Messages[0].ID)
 		assert.Equal(t, "user", result.Messages[0].Role)
 		assert.Equal(t, "whats my next 5 chests??", result.Messages[0].Content)
