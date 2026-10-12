@@ -114,7 +114,7 @@ func TestMessages(t *testing.T) {
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 
 		var result struct {
@@ -124,12 +124,6 @@ func TestMessages(t *testing.T) {
 				Role    string `json:"role"`
 				Content string `json:"content"`
 			} `json:"message"`
-			Reply *struct {
-				ID      int64  `json:"id"`
-				ChatID  int64  `json:"chat_id"`
-				Role    string `json:"role"`
-				Content string `json:"content"`
-			} `json:"reply"`
 		}
 
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
@@ -140,15 +134,11 @@ func TestMessages(t *testing.T) {
 
 		require.NotZero(t, result.Message.ID)
 		messageID = result.Message.ID
-
-		require.NotNil(t, result.Reply)
-		assert.Equal(t, chatID, result.Reply.ChatID)
-		assert.Equal(t, "assistant", result.Reply.Role)
-		assert.NotEmpty(t, result.Reply.Content)
-		assert.Greater(t, result.Reply.ID, result.Message.ID)
 	})
 
 	t.Run("show messages", func(t *testing.T) {
+		time.Sleep(1 * time.Minute)
+
 		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/chats/%d/messages?sort=id", apiURL, chatID), nil)
 		require.NoError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessToken)

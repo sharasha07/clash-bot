@@ -75,21 +75,42 @@ func TestMain(m *testing.M) {
 		}
 
 		// starting API process for tests
-		cmd := exec.Command("../bin/api")
-		cmd.Env = append(os.Environ(), "DB_DSN="+dsn, "LIMITER_ENABLED=false", "PORT="+port)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		apiCmd := exec.Command("../bin/api")
+		apiCmd.Env = append(os.Environ(), "DB_DSN="+dsn, "LIMITER_ENABLED=false", "PORT="+port)
+		apiCmd.Stdout = os.Stdout
+		apiCmd.Stderr = os.Stderr
 
-		if err := cmd.Start(); err != nil {
+		if err := apiCmd.Start(); err != nil {
 			panic(err)
 		}
 		defer func() {
-			err := cmd.Process.Kill()
+			err := apiCmd.Process.Kill()
 			if err != nil {
 				log.Printf("killing api process failed: %v", err)
 			}
 
-			err = cmd.Wait()
+			err = apiCmd.Wait()
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+
+		// starting worker process for tests
+		workerCmd := exec.Command("../bin/worker")
+		workerCmd.Env = append(os.Environ(), "DB_DSN="+dsn)
+		workerCmd.Stdout = os.Stdout
+		workerCmd.Stderr = os.Stderr
+
+		if err := workerCmd.Start(); err != nil {
+			panic(err)
+		}
+		defer func() {
+			err := workerCmd.Process.Kill()
+			if err != nil {
+				log.Printf("killing worker process failed: %v", err)
+			}
+
+			err = workerCmd.Wait()
 			if err != nil {
 				log.Println(err)
 			}
