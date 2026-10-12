@@ -131,7 +131,7 @@ func (app *application) createMessageHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = app.brokerChannel.PublishWithContext(r.Context(),
+	err = app.broker.PublishWithContext(r.Context(),
 		"",
 		"generate_reply",
 		false,

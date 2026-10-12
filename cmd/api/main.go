@@ -13,16 +13,17 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/sharasha07/clash-bot/internal/broker"
 	"github.com/sharasha07/clash-bot/internal/data"
 	"github.com/sharasha07/clash-bot/internal/objectstorage"
 )
 
 type application struct {
-	logger        *slog.Logger
-	cfg           Config
-	models        data.Models
-	s3Client      objectstorage.ObjectStorage
-	brokerChannel *amqp.Channel
+	logger   *slog.Logger
+	cfg      Config
+	models   data.Models
+	s3Client objectstorage.ObjectStorage
+	broker   broker.MessageBroker
 }
 
 type Config struct {
@@ -112,11 +113,11 @@ func main() {
 	exitOnError(err, "failed to declare a queue")
 
 	app := &application{
-		logger:        logger,
-		cfg:           cfg,
-		models:        data.NewModels(pool),
-		s3Client:      s3Client,
-		brokerChannel: ch,
+		logger:   logger,
+		cfg:      cfg,
+		models:   data.NewModels(pool),
+		s3Client: s3Client,
+		broker:   ch,
 	}
 
 	err = app.serve()

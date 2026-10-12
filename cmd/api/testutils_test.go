@@ -22,5 +22,6 @@ func newTestApplication(t *testing.T) *application {
 			Messages: mocks.NewMockMessageRepository(ctrl),
 		},
 		s3Client: mocks.NewMockObjectStorage(ctrl),
+		broker:   mocks.NewMockMessageBroker(ctrl),
 	}
 }
