@@ -102,7 +102,7 @@ func main() {
 	msgs, err := ch.Consume(
 		"generate_reply",
 		"",
-		false,
+		true,
 		false,
 		false,
 		false,
@@ -120,7 +120,6 @@ func main() {
 			err := json.Unmarshal(d.Body, &body)
 			if err != nil {
 				log.Printf("failed to unmarshal body: %v", err)
-				d.Nack(false, false)
 				continue
 			}
 
@@ -135,7 +134,6 @@ func main() {
 
 			if err != nil {
 				log.Printf("failed to fetch recent messages: %v", err)
-				d.Nack(false, true)
 				continue
 			}
 
@@ -164,7 +162,6 @@ func main() {
 
 			if err != nil {
 				log.Printf("failed to generate reply: %v", err)
-				d.Nack(false, true)
 				continue
 			} else {
 				assistantMessage = &data.Message{
@@ -179,13 +176,8 @@ func main() {
 
 				if err != nil {
 					log.Printf("failed to store reply: %v", err)
-					d.Nack(false, true)
 					continue
 				}
-			}
-
-			if err := d.Ack(false); err != nil {
-				log.Printf("failed to ack message: %v", err)
 			}
 		}
 	}()

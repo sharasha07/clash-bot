@@ -85,6 +85,10 @@ func NewGemini(apiKey, baseURL, model string, timeout time.Duration, crClient cl
 }
 
 func (l *GeminiClient) GenerateReply(ctx context.Context, prompt string, gameTag *string) (string, error) {
+	if strings.TrimSpace(prompt) == "" {
+		return "", errors.New("cannot generate reply from an empty prompt")
+	}
+
 	contents := genai.Text(prompt)
 
 	tag := "none"
