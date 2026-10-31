@@ -1,3 +1,5 @@
+![badge](https://github.com/sharasha07/clash-bot/actions/workflows/ci.yml/badge.svg)
+
 # Clash-Bot
 
 Clash-Bot is an API backend for LLM-powered chat app built for Clash Royale players.
@@ -29,5 +31,3 @@ Unit, integration, and end-to-end tests.
 - RabbitMQ
 - Gemini 
 - Cloudflare R2
-
-![badge](https://github.com/sharasha07/clash-bot/actions/workflows/ci.yml/badge.svg)
