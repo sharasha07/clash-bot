@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: clashbot
+      POSTGRES_PASSWORD: clashbot
+      POSTGRES_DB: clashbot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clashbot -d clashbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+
+  rabbitmq:
+    image: rabbitmq:4-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: clashbot
+      RABBITMQ_DEFAULT_PASS: clashbot
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/5672"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations:ro
+    command: ["-path=/migrations", "-database=postgres://clashbot:clashbot@postgres:5432/clashbot?sslmode=disable", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      PORT: 8080
+      SERVER_READ_TIMEOUT: 15s
+      SERVER_WRITE_TIMEOUT: 15s
+      SERVER_IDLE_TIMEOUT: 60s
+      TRUSTED_ORIGINS: http://localhost:4000,https://localhost:4000
+      LIMITER_RPS: 2
+      LIMITER_BURST: 4
+      LIMITER_ENABLED: true
+      DB_DSN: postgres://clashbot:clashbot@postgres:5432/clashbot?sslmode=disable
+      DB_MIN_CONNS: 2
+      DB_MAX_CONNS: 10
+      DB_MAX_IDLE_TIME: 15m
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 720h
+      R2_ACCESS_KEY: ${R2_ACCESS_KEY:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
+      S3_API_ENDPOINT: ${S3_API_ENDPOINT:-}
+      RABBITMQ_URL: amqp://clashbot:clashbot@rabbitmq:5672/
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      DB_DSN: postgres://clashbot:clashbot@postgres:5432/clashbot?sslmode=disable
+      DB_MIN_CONNS: 2
+      DB_MAX_CONNS: 10
+      DB_MAX_IDLE_TIME: 15m
+      REDIS_URL: redis://redis:6379
+      CLASH_ROYALE_BASE_URL: ${CLASH_ROYALE_BASE_URL:-https://api.clashroyale.com}
+      CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN:-}
+      CLASH_ROYALE_TIMEOUT: 10s
+      CLASH_ROYALE_MAX_RESULT_BYTES: 1048576
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      GEMINI_TIMEOUT: 30s
+      RABBITMQ_URL: amqp://clashbot:clashbot@rabbitmq:5672/
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  postgres_data:
